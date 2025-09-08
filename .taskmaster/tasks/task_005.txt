@@ -1,0 +1,223 @@
+# Task ID: 5
+# Title: Note CRUD API Implementation (with Edit History)
+# Status: pending
+# Dependencies: 2, 3
+# Priority: high
+# Description: Implement API endpoints for creating, reading, updating, and deleting notes with edit history tracking
+# Details:
+1. Create notes API endpoints in app/api/notes/route.ts:
+```typescript
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import prisma from '@/lib/db';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+
+const noteSchema = z.object({
+  title: z.string().min(1),
+  content: z.string(),
+  tags: z.array(z.string()),
+});
+
+// GET all notes
+export async function GET(request: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const { searchParams } = new URL(request.url);
+    const query = searchParams.get('query') || '';
+    const tag = searchParams.get('tag');
+    const archived = searchParams.get('archived') === 'true';
+    
+    const notes = await prisma.note.findMany({
+      where: {
+        userId: session.user.id,
+        isArchived: archived,
+        ...(tag ? { tags: { has: tag } } : {}),
+        ...(query ? {
+          OR: [
+            { title: { contains: query, mode: 'insensitive' } },
+            { content: { contains: query, mode: 'insensitive' } },
+          ],
+        } : {}),
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+    
+    return NextResponse.json(notes);
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to fetch notes' }, { status: 500 });
+  }
+}
+
+// POST create note
+export async function POST(request: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const body = await request.json();
+    const { title, content, tags } = noteSchema.parse(body);
+    
+    const note = await prisma.note.create({
+      data: {
+        title,
+        content,
+        tags,
+        userId: session.user.id,
+      },
+    });
+    
+    // Create initial history entry
+    await prisma.noteHistory.create({
+      data: {
+        noteId: note.id,
+        userId: session.user.id,
+        title,
+        content,
+        tags,
+        version: 1,
+        changeType: 'create',
+      },
+    });
+    
+    return NextResponse.json(note, { status: 201 });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.errors }, { status: 400 });
+    }
+    return NextResponse.json({ error: 'Failed to create note' }, { status: 500 });
+  }
+}
+```
+2. Create note-specific API endpoints in app/api/notes/[id]/route.ts:
+```typescript
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import prisma from '@/lib/db';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+
+const noteUpdateSchema = z.object({
+  title: z.string().min(1).optional(),
+  content: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  isArchived: z.boolean().optional(),
+});
+
+// GET single note
+export async function GET(request: Request, { params }: { params: { id: string } }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const note = await prisma.note.findUnique({
+      where: { id: params.id },
+    });
+    
+    if (!note) {
+      return NextResponse.json({ error: 'Note not found' }, { status: 404 });
+    }
+    
+    if (note.userId !== session.user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    
+    return NextResponse.json(note);
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to fetch note' }, { status: 500 });
+  }
+}
+
+// PUT update note
+export async function PUT(request: Request, { params }: { params: { id: string } }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const note = await prisma.note.findUnique({
+      where: { id: params.id },
+    });
+    
+    if (!note) {
+      return NextResponse.json({ error: 'Note not found' }, { status: 404 });
+    }
+    
+    if (note.userId !== session.user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    
+    const body = await request.json();
+    const { title, content, tags, isArchived } = noteUpdateSchema.parse(body);
+    
+    const updatedNote = await prisma.note.update({
+      where: { id: params.id },
+      data: {
+        ...(title !== undefined ? { title } : {}),
+        ...(content !== undefined ? { content } : {}),
+        ...(tags !== undefined ? { tags } : {}),
+        ...(isArchived !== undefined ? { isArchived } : {}),
+        lastEdited: new Date(),
+      },
+    });
+    
+    return NextResponse.json(updatedNote);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.errors }, { status: 400 });
+    }
+    return NextResponse.json({ error: 'Failed to update note' }, { status: 500 });
+  }
+}
+
+// DELETE note
+export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const note = await prisma.note.findUnique({
+      where: { id: params.id },
+    });
+    
+    if (!note) {
+      return NextResponse.json({ error: 'Note not found' }, { status: 404 });
+    }
+    
+    if (note.userId !== session.user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    
+    await prisma.note.delete({
+      where: { id: params.id },
+    });
+    
+    return NextResponse.json({ message: 'Note deleted' });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to delete note' }, { status: 500 });
+  }
+}
+```
+3. Create archive/unarchive functionality
+4. Implement validation with Zod schemas
+
+# Test Strategy:
+1. Test creating notes with valid and invalid data
+2. Test retrieving notes with various query parameters
+3. Test updating notes with partial data
+4. Test deleting notes
+5. Verify archive/unarchive functionality
+6. Test authorization checks for all endpoints
+7. Validate error handling for all edge cases
+8. Test performance with a large number of notes

@@ -1,0 +1,216 @@
+# Task ID: 13
+# Title: Real-time Collaborative Editing
+# Status: pending
+# Dependencies: 3, 5, 9
+# Priority: low
+# Description: Implement WebSocket-based real-time collaborative editing
+# Details:
+1. Install WebSocket packages:
+```bash
+npm install socket.io socket.io-client y-websocket yjs
+```
+2. Create WebSocket server setup in app/api/socket/route.ts:
+```typescript
+import { Server } from 'socket.io';
+import { NextApiRequest } from 'next';
+import { NextApiResponseServerIO } from '@/types/next';
+import { verifyToken } from '@/lib/auth';
+
+export default function SocketHandler(req: NextApiRequest, res: NextApiResponseServerIO) {
+  if (!res.socket.server.io) {
+    const io = new Server(res.socket.server);
+    
+    io.use((socket, next) => {
+      const token = socket.handshake.auth.token;
+      if (!token) {
+        return next(new Error('Authentication error'));
+      }
+      
+      const decoded = verifyToken(token);
+      if (!decoded) {
+        return next(new Error('Authentication error'));
+      }
+      
+      socket.data.userId = decoded.userId;
+      next();
+    });
+    
+    io.on('connection', (socket) => {
+      console.log(`User connected: ${socket.data.userId}`);
+      
+      socket.on('join-note', (noteId) => {
+        socket.join(`note:${noteId}`);
+        console.log(`User ${socket.data.userId} joined note: ${noteId}`);
+      });
+      
+      socket.on('leave-note', (noteId) => {
+        socket.leave(`note:${noteId}`);
+        console.log(`User ${socket.data.userId} left note: ${noteId}`);
+      });
+      
+      socket.on('note-update', ({ noteId, content, cursorPosition }) => {
+        socket.to(`note:${noteId}`).emit('note-updated', {
+          userId: socket.data.userId,
+          content,
+          cursorPosition,
+        });
+      });
+      
+      socket.on('disconnect', () => {
+        console.log(`User disconnected: ${socket.data.userId}`);
+      });
+    });
+    
+    res.socket.server.io = io;
+  }
+  
+  res.end();
+}
+```
+3. Create collaborative editor component in app/components/notes/CollaborativeEditor.tsx:
+```typescript
+'use client';
+
+import { useEffect, useState, useRef } from 'react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Collaboration from '@tiptap/extension-collaboration';
+import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
+import { WebsocketProvider } from 'y-websocket';
+import * as Y from 'yjs';
+import { io, Socket } from 'socket.io-client';
+
+interface CollaborativeEditorProps {
+  noteId: string;
+  initialContent: string;
+  token: string;
+  username: string;
+}
+
+export default function CollaborativeEditor({
+  noteId,
+  initialContent,
+  token,
+  username,
+}: CollaborativeEditorProps) {
+  const [isMounted, setIsMounted] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [activeUsers, setActiveUsers] = useState<string[]>([]);
+  const socketRef = useRef<Socket | null>(null);
+  
+  useEffect(() => {
+    setIsMounted(true);
+    
+    // Initialize Socket.io connection
+    socketRef.current = io({
+      auth: { token },
+    });
+    
+    socketRef.current.on('connect', () => {
+      setIsConnected(true);
+      socketRef.current?.emit('join-note', noteId);
+    });
+    
+    socketRef.current.on('disconnect', () => {
+      setIsConnected(false);
+    });
+    
+    socketRef.current.on('users-update', (users: string[]) => {
+      setActiveUsers(users);
+    });
+    
+    return () => {
+      socketRef.current?.emit('leave-note', noteId);
+      socketRef.current?.disconnect();
+    };
+  }, [noteId, token]);
+  
+  // Initialize YJS document
+  const ydoc = new Y.Doc();
+  const provider = new WebsocketProvider(
+    `${process.env.NEXT_PUBLIC_WS_URL}/collaboration`,
+    noteId,
+    ydoc
+  );
+  
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Collaboration.configure({
+        document: ydoc,
+      }),
+      CollaborationCursor.configure({
+        provider,
+        user: {
+          name: username,
+          color: '#' + Math.floor(Math.random() * 16777215).toString(16),
+        },
+      }),
+    ],
+    content: initialContent,
+    editorProps: {
+      attributes: {
+        class: 'prose dark:prose-invert prose-sm sm:prose-base lg:prose-lg xl:prose-xl focus:outline-none max-w-none',
+      },
+    },
+    onUpdate: ({ editor }) => {
+      const html = editor.getHTML();
+      socketRef.current?.emit('note-update', {
+        noteId,
+        content: html,
+      });
+    },
+  });
+  
+  if (!isMounted) {
+    return null;
+  }
+  
+  return (
+    <div className="border border-gray-200 dark:border-gray-700 rounded-md">
+      <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 p-2">
+        <div className="flex space-x-2">
+          {/* Editor toolbar */}
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            {isConnected ? 'Connected' : 'Disconnected'}
+          </span>
+          
+          {activeUsers.length > 0 && (
+            <div className="flex -space-x-2">
+              {activeUsers.map((user, index) => (
+                <div 
+                  key={index}
+                  className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs"
+                  title={user}
+                >
+                  {user.charAt(0).toUpperCase()}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      
+      <EditorContent editor={editor} className="p-4 min-h-[200px]" />
+    </div>
+  );
+}
+```
+4. Update NoteEditor to support collaborative editing
+5. Implement user presence indicators
+6. Add cursor position synchronization
+7. Handle conflict resolution for concurrent edits
+
+# Test Strategy:
+1. Test real-time synchronization between multiple clients
+2. Verify cursor position tracking across clients
+3. Test user presence indicators
+4. Validate conflict resolution for concurrent edits
+5. Test connection and reconnection handling
+6. Verify authentication for WebSocket connections
+7. Test performance with multiple simultaneous users
+8. Validate error handling for connection issues

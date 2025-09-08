@@ -1,0 +1,87 @@
+# Task ID: 6
+# Title: Search and Filtering API Implementation
+# Status: pending
+# Dependencies: 5
+# Priority: medium
+# Description: Implement advanced search functionality with keyword matching and tag filtering
+# Details:
+1. Create search API endpoint at app/api/search/route.ts:
+```typescript
+import { NextResponse } from 'next/server';
+import prisma from '@/lib/db';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+
+export async function GET(request: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const { searchParams } = new URL(request.url);
+    const query = searchParams.get('q') || '';
+    const tags = searchParams.getAll('tag');
+    const archived = searchParams.get('archived') === 'true';
+    
+    // Build search conditions
+    const where: any = {
+      userId: session.user.id,
+      isArchived: archived,
+    };
+    
+    // Add tag filtering if tags are provided
+    if (tags.length > 0) {
+      where.tags = { hasSome: tags };
+    }
+    
+    // Add text search if query is provided
+    if (query) {
+      where.OR = [
+        { title: { contains: query, mode: 'insensitive' } },
+        { content: { contains: query, mode: 'insensitive' } },
+        { tags: { has: query } },
+      ];
+    }
+    
+    const notes = await prisma.note.findMany({
+      where,
+      orderBy: { updatedAt: 'desc' },
+    });
+    
+    // Add highlight information for search results
+    const results = notes.map(note => {
+      let highlight = null;
+      if (query && note.content.toLowerCase().includes(query.toLowerCase())) {
+        const index = note.content.toLowerCase().indexOf(query.toLowerCase());
+        const start = Math.max(0, index - 50);
+        const end = Math.min(note.content.length, index + query.length + 50);
+        highlight = note.content.substring(start, end);
+      }
+      
+      return {
+        ...note,
+        highlight,
+      };
+    });
+    
+    return NextResponse.json(results);
+  } catch (error) {
+    return NextResponse.json({ error: 'Search failed' }, { status: 500 });
+  }
+}
+```
+2. Implement tag-based filtering
+3. Create search result highlighting logic
+4. Optimize search queries for performance
+5. Add pagination support for search results
+
+# Test Strategy:
+1. Test search functionality with various query parameters
+2. Verify tag filtering works correctly
+3. Test search result highlighting
+4. Validate case-insensitive search
+5. Test search performance with large datasets
+6. Verify pagination works correctly
+7. Test combined search and filter operations
+8. Validate error handling for malformed queries

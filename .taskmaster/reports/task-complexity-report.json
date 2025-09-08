@@ -1,0 +1,133 @@
+{
+	"meta": {
+		"generatedAt": "2025-09-08T06:49:25.109Z",
+		"tasksAnalyzed": 15,
+		"totalTasks": 15,
+		"analysisCount": 15,
+		"thresholdScore": 5,
+		"projectName": "Taskmaster",
+		"usedResearch": true
+	},
+	"complexityAnalysis": [
+		{
+			"taskId": 1,
+			"taskTitle": "Project Setup and Configuration",
+			"complexityScore": 6,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Break down project setup into subtasks for Next.js initialization, TypeScript configuration, Tailwind CSS setup, ESLint/Prettier setup, Docker Compose and Dockerfile creation, GitHub Actions CI/CD, Vitest setup, and verification steps for each.",
+			"reasoning": "This task covers multiple foundational setup activities across frontend, tooling, and infrastructure. Each step is well-documented and follows standard patterns, but the breadth and need for cross-tool integration (e.g., Docker, CI/CD, linting, testing) increase the complexity above a basic project scaffold."
+		},
+		{
+			"taskId": 2,
+			"taskTitle": "Database Schema and Prisma ORM Setup",
+			"complexityScore": 5,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Expand into subtasks for installing Prisma, configuring the database connection, defining the schema, running migrations, generating the client, and creating a reusable database service module.",
+			"reasoning": "This is a typical ORM setup task with moderate complexity, involving schema design, migration, and basic service abstraction. The models are straightforward, but ensuring correct relationships and constraints adds some cognitive load."
+		},
+		{
+			"taskId": 3,
+			"taskTitle": "Authentication System Implementation",
+			"complexityScore": 8,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Decompose into subtasks for package installation, utility creation (hashing, JWT), registration endpoint, login endpoint, middleware for protected routes, NextAuth.js integration, protected route wrappers, and comprehensive testing.",
+			"reasoning": "Authentication is inherently complex due to security, error handling, and integration with session management. The use of both JWT and NextAuth.js, plus middleware and protected routes, increases the number of moving parts and potential failure points."
+		},
+		{
+			"taskId": 4,
+			"taskTitle": "Password Reset Functionality",
+			"complexityScore": 7,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Expand into subtasks for email utility setup, forgot-password endpoint, reset-password endpoint, password reset form components, Prisma schema update for tokens, and security validation.",
+			"reasoning": "Password reset flows require careful handling of tokens, email delivery, and security edge cases. While the implementation is standard, the need for secure token storage, expiration, and user feedback increases complexity."
+		},
+		{
+			"taskId": 5,
+			"taskTitle": "Note CRUD API Implementation",
+			"complexityScore": 7,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Break down into subtasks for each CRUD operation (create, read, update, delete), archive/unarchive, validation, authorization, and error handling for all endpoints.",
+			"reasoning": "CRUD APIs are common, but the need for robust validation, user authorization, and handling of edge cases (e.g., archiving, partial updates) adds significant complexity, especially with multi-user data."
+		},
+		{
+			"taskId": 6,
+			"taskTitle": "Search and Filtering API Implementation",
+			"complexityScore": 6,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Decompose into subtasks for search endpoint creation, tag filtering, result highlighting, query optimization, pagination, and error handling.",
+			"reasoning": "Advanced search with filtering, highlighting, and pagination requires careful query construction and performance considerations, but follows established patterns in API design."
+		},
+		{
+			"taskId": 7,
+			"taskTitle": "User Interface Layout and Navigation",
+			"complexityScore": 6,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Expand into subtasks for layout components (sidebar, header), theme provider, responsive design, mobile navigation, keyboard navigation, and authenticated/unauthenticated layouts.",
+			"reasoning": "UI layout is a standard frontend task, but ensuring accessibility, responsiveness, and theme support adds moderate complexity, especially with navigation and state management."
+		},
+		{
+			"taskId": 8,
+			"taskTitle": "Authentication UI Components",
+			"complexityScore": 7,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Break down into subtasks for login, registration, forgot password, reset password forms, form validation, loading/error states, and authentication page layouts.",
+			"reasoning": "Authentication UIs must handle validation, error feedback, loading states, and navigation, all of which require careful UX and state management. Integration with backend flows adds further complexity."
+		},
+		{
+			"taskId": 9,
+			"taskTitle": "Note Editor Component with Rich Text Support",
+			"complexityScore": 8,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Expand into subtasks for editor integration, container component, tag input, auto-save, keyboard shortcuts, and accessibility enhancements.",
+			"reasoning": "Rich text editors are complex due to third-party integration, state synchronization, extensibility (tags, images), and UX features like auto-save and keyboard shortcuts."
+		},
+		{
+			"taskId": 10,
+			"taskTitle": "Note List and Dashboard UI",
+			"complexityScore": 7,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Decompose into subtasks for note list, dashboard, note detail, new note, archived notes pages, client-side filtering/search, and empty state handling.",
+			"reasoning": "Listing and dashboard UIs require data handling, filtering, navigation, and responsive design. Handling various states (empty, loading, filtered) and integrating with search/highlighting increases complexity."
+		},
+		{
+			"taskId": 11,
+			"taskTitle": "Theme and Font Customization",
+			"complexityScore": 5,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Expand into subtasks for theme provider, settings page, Tailwind config update, font loading, theme persistence, and system theme detection.",
+			"reasoning": "Theme and font switching is a well-understood pattern, but requires coordination between context providers, persistent storage, and UI updates. Accessibility and system integration add some complexity."
+		},
+		{
+			"taskId": 12,
+			"taskTitle": "Keyboard Navigation and Accessibility",
+			"complexityScore": 7,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Break down into subtasks for keyboard shortcut utility, accessibility components (skip link, shortcut help), shortcut integration, focus management, ARIA attributes, screen reader support, and tab order validation.",
+			"reasoning": "Accessibility and keyboard navigation require specialized knowledge and careful implementation to meet standards. Ensuring compliance and usability across all components increases the task's complexity."
+		},
+		{
+			"taskId": 13,
+			"taskTitle": "Real-time Collaborative Editing",
+			"complexityScore": 9,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Expand into subtasks for WebSocket server setup, collaborative editor integration, user presence, cursor sync, conflict resolution, authentication, and error/reconnection handling.",
+			"reasoning": "Real-time collaboration is highly complex, involving distributed state, concurrency, presence, and network reliability. Integration with authentication and the editor further increases the challenge."
+		},
+		{
+			"taskId": 14,
+			"taskTitle": "Image Upload and Storage",
+			"complexityScore": 8,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Decompose into subtasks for S3 client utility, upload API, image upload UI, editor integration, image preview/deletion, validation, and optimization.",
+			"reasoning": "Image upload involves backend integration, file validation, storage, UI feedback, and security. Supporting S3-compatible storage and editor integration adds significant complexity."
+		},
+		{
+			"taskId": 15,
+			"taskTitle": "Testing and Deployment Setup",
+			"complexityScore": 7,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Expand into subtasks for Vitest config, test setup, example tests, GitHub Actions workflow, Docker production config, Docker Compose, environment config, and deployment validation.",
+			"reasoning": "Comprehensive testing and deployment setup spans multiple tools and environments. Ensuring CI/CD, test coverage, and production readiness requires coordination and attention to detail."
+		}
+	]
+}

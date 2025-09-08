@@ -1,0 +1,258 @@
+# Task ID: 15
+# Title: Testing and Deployment Setup
+# Status: pending
+# Dependencies: 1, 2, 3, 5, 7, 9
+# Priority: medium
+# Description: Set up comprehensive testing and deployment configuration
+# Details:
+1. Configure Vitest for testing in vite.config.ts:
+```typescript
+import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+  plugins: [react()],
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./vitest.setup.ts'],
+    globals: true,
+  },
+});
+```
+2. Create test setup file in vitest.setup.ts:
+```typescript
+import '@testing-library/jest-dom';
+import { vi } from 'vitest';
+
+// Mock Next.js router
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    refresh: vi.fn(),
+  }),
+  usePathname: () => '/',
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+// Mock next-auth
+vi.mock('next-auth/react', () => ({
+  useSession: vi.fn(() => ({
+    data: {
+      user: { id: 'test-user-id', email: 'test@example.com' },
+      expires: '2100-01-01',
+    },
+    status: 'authenticated',
+  })),
+  signIn: vi.fn(),
+  signOut: vi.fn(),
+}));
+```
+3. Create example component test in app/components/ui/Button.test.tsx:
+```typescript
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import Button from './Button';
+
+describe('Button component', () => {
+  it('renders correctly', () => {
+    render(<Button>Click me</Button>);
+    expect(screen.getByRole('button', { name: /click me/i })).toBeInTheDocument();
+  });
+  
+  it('calls onClick handler when clicked', () => {
+    const handleClick = vi.fn();
+    render(<Button onClick={handleClick}>Click me</Button>);
+    fireEvent.click(screen.getByRole('button', { name: /click me/i }));
+    expect(handleClick).toHaveBeenCalledTimes(1);
+  });
+  
+  it('can be disabled', () => {
+    render(<Button disabled>Click me</Button>);
+    expect(screen.getByRole('button', { name: /click me/i })).toBeDisabled();
+  });
+  
+  it('renders with different variants', () => {
+    const { rerender } = render(<Button variant="primary">Primary</Button>);
+    expect(screen.getByRole('button')).toHaveClass('bg-blue-600');
+    
+    rerender(<Button variant="secondary">Secondary</Button>);
+    expect(screen.getByRole('button')).toHaveClass('bg-gray-200');
+    
+    rerender(<Button variant="danger">Danger</Button>);
+    expect(screen.getByRole('button')).toHaveClass('bg-red-600');
+  });
+});
+```
+4. Create GitHub Actions workflow in .github/workflows/ci.yml:
+```yaml
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Lint
+        run: npm run lint
+      
+      - name: Type check
+        run: npm run type-check
+      
+      - name: Run tests
+        run: npm test
+  
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build
+        run: npm run build
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build
+          path: .next
+  
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build
+          path: .next
+      
+      # Add deployment steps here based on your hosting provider
+      # Example for Vercel:
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+```
+5. Create Docker production configuration in Dockerfile:
+```dockerfile
+# Build stage
+FROM node:18-alpine AS builder
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
+
+# Production stage
+FROM node:18-alpine AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+COPY --from=builder /app/next.config.js ./
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
+
+EXPOSE 3000
+
+CMD ["npm", "start"]
+```
+6. Create production Docker Compose configuration in docker-compose.prod.yml:
+```yaml
+version: '3'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - '3000:3000'
+    env_file: .env.production
+    depends_on:
+      - db
+  
+  db:
+    image: postgres:14
+    restart: always
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file: .env.production
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_DB: ${POSTGRES_DB}
+  
+  # Add S3-compatible storage (MinIO)
+  minio:
+    image: minio/minio
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    volumes:
+      - minio_data:/data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    command: server --console-address ":9001" /data
+
+volumes:
+  postgres_data:
+  minio_data:
+```
+7. Create example API test in app/api/notes/notes.test.ts
+8. Create example component integration test
+
+# Test Strategy:
+1. Test component rendering and functionality
+2. Verify API endpoint behavior with mocked database
+3. Test authentication flows
+4. Validate form submissions and error handling
+5. Test Docker build and deployment process
+6. Verify GitHub Actions workflow execution
+7. Test database migrations
+8. Validate environment configuration loading

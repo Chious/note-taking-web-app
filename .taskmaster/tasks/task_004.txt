@@ -1,0 +1,99 @@
+# Task ID: 4
+# Title: Password Reset Functionality
+# Status: pending
+# Dependencies: 2, 3
+# Priority: medium
+# Description: Implement password reset flow with email verification
+# Details:
+1. Install email service package:
+```bash
+npm install nodemailer
+npm install -D @types/nodemailer
+```
+2. Create email service utility in lib/email.ts:
+```typescript
+import nodemailer from 'nodemailer';
+
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT),
+  secure: Boolean(process.env.SMTP_SECURE),
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASSWORD,
+  },
+});
+
+export async function sendPasswordResetEmail(email: string, token: string): Promise<void> {
+  const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}`;
+  
+  await transporter.sendMail({
+    from: process.env.SMTP_FROM,
+    to: email,
+    subject: 'Reset your password',
+    html: `
+      <p>You requested a password reset.</p>
+      <p>Click <a href="${resetUrl}">here</a> to reset your password.</p>
+      <p>If you didn't request this, please ignore this email.</p>
+    `,
+  });
+}
+```
+3. Create forgot-password API endpoint at app/api/forgot-password/route.ts:
+```typescript
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { randomBytes } from 'crypto';
+import prisma from '@/lib/db';
+import { sendPasswordResetEmail } from '@/lib/email';
+
+const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+});
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { email } = forgotPasswordSchema.parse(body);
+    
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      // Return success even if user doesn't exist for security
+      return NextResponse.json({ message: 'If an account exists, a reset email has been sent' });
+    }
+    
+    const token = randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 3600000); // 1 hour
+    
+    // Store token in database (create a PasswordReset model in Prisma)
+    await prisma.passwordReset.create({
+      data: {
+        email,
+        token,
+        expires,
+      },
+    });
+    
+    await sendPasswordResetEmail(email, token);
+    
+    return NextResponse.json({ message: 'If an account exists, a reset email has been sent' });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.errors }, { status: 400 });
+    }
+    return NextResponse.json({ error: 'Password reset request failed' }, { status: 500 });
+  }
+}
+```
+4. Create reset-password API endpoint at app/api/reset-password/route.ts
+5. Create password reset form components
+6. Update Prisma schema to include PasswordReset model
+
+# Test Strategy:
+1. Test forgot password flow with valid and invalid email addresses
+2. Verify email sending functionality with test SMTP server
+3. Test password reset token validation
+4. Verify password reset with valid and invalid tokens
+5. Test token expiration handling
+6. Validate security measures against timing attacks
+7. Test error handling for all edge cases

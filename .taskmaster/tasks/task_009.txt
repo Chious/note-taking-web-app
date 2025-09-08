@@ -1,0 +1,277 @@
+# Task ID: 9
+# Title: Note Editor Component with Rich Text Support
+# Status: pending
+# Dependencies: 5, 7
+# Priority: high
+# Description: Implement WYSIWYG rich text editor for note creation and editing
+# Details:
+1. Install rich text editor package:
+```bash
+npm install @tiptap/react @tiptap/starter-kit @tiptap/extension-placeholder @tiptap/extension-image
+```
+2. Create rich text editor component in app/components/notes/Editor.tsx:
+```typescript
+'use client';
+
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Placeholder from '@tiptap/extension-placeholder';
+import Image from '@tiptap/extension-image';
+import { useState, useEffect, useCallback } from 'react';
+import { debounce } from 'lodash';
+
+interface EditorProps {
+  initialContent: string;
+  onUpdate: (content: string) => void;
+  placeholder?: string;
+}
+
+export default function Editor({ initialContent, onUpdate, placeholder = 'Start writing...' }: EditorProps) {
+  const [isMounted, setIsMounted] = useState(false);
+  
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Placeholder.configure({
+        placeholder,
+      }),
+      Image,
+    ],
+    content: initialContent,
+    editorProps: {
+      attributes: {
+        class: 'prose dark:prose-invert prose-sm sm:prose-base lg:prose-lg xl:prose-xl focus:outline-none max-w-none',
+      },
+    },
+    onUpdate: ({ editor }) => {
+      const html = editor.getHTML();
+      debouncedUpdate(html);
+    },
+  });
+  
+  // Debounce the update function to avoid too many API calls
+  const debouncedUpdate = useCallback(
+    debounce((content: string) => {
+      onUpdate(content);
+    }, 750),
+    [onUpdate]
+  );
+  
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+  
+  if (!isMounted) {
+    return null;
+  }
+  
+  return (
+    <div className="border border-gray-200 dark:border-gray-700 rounded-md">
+      <div className="flex items-center border-b border-gray-200 dark:border-gray-700 p-2">
+        {editor && (
+          <div className="flex space-x-2">
+            <button
+              onClick={() => editor.chain().focus().toggleBold().run()}
+              className={`p-1 rounded ${editor.isActive('bold') ? 'bg-gray-200 dark:bg-gray-700' : ''}`}
+              aria-label="Bold"
+            >
+              B
+            </button>
+            <button
+              onClick={() => editor.chain().focus().toggleItalic().run()}
+              className={`p-1 rounded ${editor.isActive('italic') ? 'bg-gray-200 dark:bg-gray-700' : ''}`}
+              aria-label="Italic"
+            >
+              I
+            </button>
+            <button
+              onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+              className={`p-1 rounded ${editor.isActive('heading', { level: 2 }) ? 'bg-gray-200 dark:bg-gray-700' : ''}`}
+              aria-label="Heading"
+            >
+              H
+            </button>
+            <button
+              onClick={() => editor.chain().focus().toggleBulletList().run()}
+              className={`p-1 rounded ${editor.isActive('bulletList') ? 'bg-gray-200 dark:bg-gray-700' : ''}`}
+              aria-label="Bullet List"
+            >
+              •
+            </button>
+            <button
+              onClick={() => editor.chain().focus().toggleOrderedList().run()}
+              className={`p-1 rounded ${editor.isActive('orderedList') ? 'bg-gray-200 dark:bg-gray-700' : ''}`}
+              aria-label="Ordered List"
+            >
+              1.
+            </button>
+          </div>
+        )}
+      </div>
+      <EditorContent editor={editor} className="p-4 min-h-[200px]" />
+    </div>
+  );
+}
+```
+3. Create note editor container component in app/components/notes/NoteEditor.tsx:
+```typescript
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Editor from './Editor';
+import TagInput from './TagInput';
+
+interface Note {
+  id?: string;
+  title: string;
+  content: string;
+  tags: string[];
+  isArchived?: boolean;
+}
+
+interface NoteEditorProps {
+  note?: Note;
+  isNew?: boolean;
+}
+
+export default function NoteEditor({ note, isNew = false }: NoteEditorProps) {
+  const router = useRouter();
+  const [title, setTitle] = useState(note?.title || '');
+  const [content, setContent] = useState(note?.content || '');
+  const [tags, setTags] = useState<string[]>(note?.tags || []);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('');
+  
+  // Auto-save functionality
+  useEffect(() => {
+    if (!isNew && note?.id && (title !== note.title || content !== note.content || tags !== note.tags)) {
+      const timer = setTimeout(() => {
+        saveNote();
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [title, content, tags]);
+  
+  const saveNote = async () => {
+    if (!title.trim()) return;
+    
+    setIsSaving(true);
+    setSaveStatus('Saving...');
+    
+    try {
+      const endpoint = isNew ? '/api/notes' : `/api/notes/${note?.id}`;
+      const method = isNew ? 'POST' : 'PUT';
+      
+      const response = await fetch(endpoint, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title,
+          content,
+          tags,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to save note');
+      }
+      
+      const savedNote = await response.json();
+      
+      setSaveStatus('Saved');
+      
+      if (isNew) {
+        router.push(`/notes/${savedNote.id}`);
+      }
+    } catch (error) {
+      setSaveStatus('Failed to save');
+    } finally {
+      setIsSaving(false);
+      setTimeout(() => setSaveStatus(''), 3000);
+    }
+  };
+  
+  const handleArchive = async () => {
+    if (!note?.id) return;
+    
+    try {
+      const response = await fetch(`/api/notes/${note.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          isArchived: !note.isArchived,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to archive note');
+      }
+      
+      router.refresh();
+      router.push('/notes');
+    } catch (error) {
+      console.error('Error archiving note:', error);
+    }
+  };
+  
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Note title"
+          className="text-2xl font-bold w-full bg-transparent border-none focus:outline-none focus:ring-0"
+        />
+        
+        <div className="flex items-center space-x-2 text-sm">
+          {saveStatus && (
+            <span className="text-gray-500 dark:text-gray-400">{saveStatus}</span>
+          )}
+          
+          {!isNew && (
+            <button
+              onClick={handleArchive}
+              className="px-3 py-1 text-sm rounded-md bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
+            >
+              {note?.isArchived ? 'Unarchive' : 'Archive'}
+            </button>
+          )}
+          
+          <button
+            onClick={saveNote}
+            disabled={isSaving || !title.trim()}
+            className="px-3 py-1 text-sm rounded-md bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSaving ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      </div>
+      
+      <TagInput tags={tags} onChange={setTags} />
+      
+      <Editor initialContent={content} onUpdate={setContent} />
+    </div>
+  );
+}
+```
+4. Create TagInput component for tag management
+5. Implement auto-save functionality with debouncing
+6. Add keyboard shortcuts for common editor actions
+
+# Test Strategy:
+1. Test rich text editor functionality (bold, italic, lists, etc.)
+2. Verify auto-save functionality with debouncing
+3. Test tag input component for adding and removing tags
+4. Validate keyboard shortcuts for editor actions
+5. Test content persistence between editor sessions
+6. Verify editor responsiveness on different screen sizes
+7. Test accessibility of editor controls
+8. Validate error handling during save operations

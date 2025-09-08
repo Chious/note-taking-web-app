@@ -1,0 +1,121 @@
+# Task ID: 7
+# Title: User Interface Layout and Navigation
+# Status: pending
+# Dependencies: 1
+# Priority: high
+# Description: Create responsive layout with navigation, sidebar, and main content area
+# Details:
+1. Create layout components in app/components/layout:
+```typescript
+// app/components/layout/Sidebar.tsx
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+
+export default function Sidebar() {
+  const pathname = usePathname();
+  
+  const navItems = [
+    { label: 'Dashboard', href: '/dashboard', icon: 'HomeIcon' },
+    { label: 'All Notes', href: '/notes', icon: 'DocumentTextIcon' },
+    { label: 'Archived', href: '/archived', icon: 'ArchiveBoxIcon' },
+    { label: 'Settings', href: '/settings', icon: 'CogIcon' },
+  ];
+  
+  return (
+    <aside className="w-64 h-screen bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 hidden md:block">
+      <div className="p-6">
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Note App</h1>
+      </div>
+      <nav className="mt-6">
+        <ul>
+          {navItems.map((item) => (
+            <li key={item.href}>
+              <Link 
+                href={item.href}
+                className={`flex items-center px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 ${pathname === item.href ? 'bg-gray-100 dark:bg-gray-700 font-medium' : ''}`}
+              >
+                <span>{item.label}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </aside>
+  );
+}
+
+// app/components/layout/Header.tsx
+import { useTheme } from 'next-themes';
+import Link from 'next/link';
+import { signOut } from 'next-auth/react';
+
+export default function Header() {
+  const { theme, setTheme } = useTheme();
+  
+  return (
+    <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+        <div className="md:hidden">
+          <button className="text-gray-500 dark:text-gray-400">
+            <span>Menu</span>
+          </button>
+        </div>
+        
+        <div className="flex items-center space-x-4">
+          <button 
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            className="p-2 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+          </button>
+          
+          <div className="relative">
+            <button className="flex items-center space-x-1 text-gray-700 dark:text-gray-300">
+              <span>Account</span>
+            </button>
+            {/* Dropdown menu */}
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+// app/layout.tsx
+import { Inter } from 'next/font/google';
+import './globals.css';
+import { ThemeProvider } from '@/components/theme-provider';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+
+const inter = Inter({ subsets: ['latin'] });
+
+export default async function RootLayout({ children }) {
+  const session = await getServerSession(authOptions);
+  
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <body className={inter.className}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          {children}
+        </ThemeProvider>
+      </body>
+    </html>
+  );
+}
+```
+2. Create theme provider component for light/dark mode
+3. Implement responsive design with Tailwind CSS
+4. Create mobile navigation menu
+5. Add keyboard navigation support
+6. Implement layout for authenticated and unauthenticated states
+
+# Test Strategy:
+1. Test responsive layout on different screen sizes
+2. Verify theme switching functionality
+3. Test keyboard navigation accessibility
+4. Validate mobile menu functionality
+5. Test layout rendering for authenticated and unauthenticated users
+6. Verify navigation between different sections
+7. Test focus states and accessibility compliance
+8. Validate layout with different content lengths

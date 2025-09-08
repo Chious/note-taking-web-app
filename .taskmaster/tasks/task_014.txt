@@ -1,0 +1,209 @@
+# Task ID: 14
+# Title: Image Upload and Storage
+# Status: pending
+# Dependencies: 3, 5, 9
+# Priority: low
+# Description: Implement image upload functionality with S3-compatible storage
+# Details:
+1. Install required packages:
+```bash
+npm install @aws-sdk/client-s3 multer next-connect uuid
+npm install -D @types/multer @types/uuid
+```
+2. Create S3 client utility in app/lib/s3.ts:
+```typescript
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION || 'us-east-1',
+  endpoint: process.env.S3_ENDPOINT,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+  },
+  forcePathStyle: true, // Required for MinIO, optional for AWS S3
+});
+
+export async function uploadFile(file: Buffer, key: string, contentType: string): Promise<string> {
+  const command = new PutObjectCommand({
+    Bucket: process.env.S3_BUCKET_NAME,
+    Key: key,
+    Body: file,
+    ContentType: contentType,
+    ACL: 'public-read',
+  });
+  
+  await s3Client.send(command);
+  
+  return `${process.env.S3_PUBLIC_URL}/${key}`;
+}
+
+export async function deleteFile(key: string): Promise<void> {
+  const command = new DeleteObjectCommand({
+    Bucket: process.env.S3_BUCKET_NAME,
+    Key: key,
+  });
+  
+  await s3Client.send(command);
+}
+```
+3. Create image upload API endpoint in app/api/upload/route.ts:
+```typescript
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { uploadFile } from '@/lib/s3';
+import { v4 as uuidv4 } from 'uuid';
+
+export async function POST(request: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const formData = await request.formData();
+    const file = formData.get('file') as File;
+    
+    if (!file) {
+      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+    }
+    
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      return NextResponse.json({ error: 'Invalid file type' }, { status: 400 });
+    }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      return NextResponse.json({ error: 'File too large (max 5MB)' }, { status: 400 });
+    }
+    
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const fileExtension = file.name.split('.').pop();
+    const fileName = `${session.user.id}/${uuidv4()}.${fileExtension}`;
+    
+    const url = await uploadFile(buffer, fileName, file.type);
+    
+    return NextResponse.json({ url }, { status: 201 });
+  } catch (error) {
+    console.error('Upload error:', error);
+    return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
+  }
+}
+```
+4. Create image upload component in app/components/notes/ImageUpload.tsx:
+```typescript
+'use client';
+
+import { useState, useRef } from 'react';
+
+interface ImageUploadProps {
+  onImageUploaded: (url: string) => void;
+}
+
+export default function ImageUpload({ onImageUploaded }: ImageUploadProps) {
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    setIsUploading(true);
+    setUploadProgress(0);
+    setError(null);
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      // Simulate upload progress
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => Math.min(prev + 10, 90));
+      }, 100);
+      
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      clearInterval(progressInterval);
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Upload failed');
+      }
+      
+      setUploadProgress(100);
+      
+      const { url } = await response.json();
+      onImageUploaded(url);
+      
+      // Reset the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+  
+  return (
+    <div>
+      <input
+        type="file"
+        accept="image/*"
+        onChange={handleUpload}
+        disabled={isUploading}
+        className="hidden"
+        ref={fileInputRef}
+        id="image-upload"
+      />
+      
+      <label
+        htmlFor="image-upload"
+        className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {isUploading ? 'Uploading...' : 'Upload Image'}
+      </label>
+      
+      {isUploading && (
+        <div className="mt-2">
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+            <div
+              className="bg-blue-600 h-2.5 rounded-full"
+              style={{ width: `${uploadProgress}%` }}
+            ></div>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            {uploadProgress}% uploaded
+          </p>
+        </div>
+      )}
+      
+      {error && (
+        <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>
+      )}
+    </div>
+  );
+}
+```
+5. Integrate image upload with rich text editor
+6. Add image preview and deletion functionality
+7. Implement image optimization for different device sizes
+
+# Test Strategy:
+1. Test image upload with valid and invalid file types
+2. Verify file size validation
+3. Test image upload progress indication
+4. Validate error handling for upload failures
+5. Test image insertion into the rich text editor
+6. Verify image deletion functionality
+7. Test image loading performance
+8. Validate image display on different device sizes

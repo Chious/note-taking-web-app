@@ -1,0 +1,158 @@
+# Task ID: 10
+# Title: Note List and Dashboard UI
+# Status: pending
+# Dependencies: 5, 6, 7, 9
+# Priority: high
+# Description: Create note listing, dashboard, and note detail views
+# Details:
+1. Create note list component in app/components/notes/NoteList.tsx:
+```typescript
+'use client';
+
+import Link from 'next/link';
+import { useState } from 'react';
+
+interface Note {
+  id: string;
+  title: string;
+  content: string;
+  tags: string[];
+  isArchived: boolean;
+  createdAt: string;
+  updatedAt: string;
+  highlight?: string | null;
+}
+
+interface NoteListProps {
+  notes: Note[];
+  showArchived?: boolean;
+}
+
+export default function NoteList({ notes, showArchived = false }: NoteListProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  
+  // Get all unique tags from notes
+  const allTags = Array.from(new Set(notes.flatMap(note => note.tags)));
+  
+  // Filter notes based on search query and selected tag
+  const filteredNotes = notes.filter(note => {
+    const matchesSearch = searchQuery === '' || 
+      note.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      note.content.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesTag = selectedTag === null || note.tags.includes(selectedTag);
+    
+    return matchesSearch && matchesTag;
+  });
+  
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search notes..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+          />
+        </div>
+        
+        <Link
+          href="/notes/new"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md inline-flex items-center justify-center"
+        >
+          New Note
+        </Link>
+      </div>
+      
+      {allTags.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setSelectedTag(null)}
+            className={`px-3 py-1 text-sm rounded-full ${selectedTag === null ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'}`}
+          >
+            All
+          </button>
+          {allTags.map(tag => (
+            <button
+              key={tag}
+              onClick={() => setSelectedTag(tag === selectedTag ? null : tag)}
+              className={`px-3 py-1 text-sm rounded-full ${tag === selectedTag ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'}`}
+            >
+              {tag}
+            </button>
+          ))}
+        </div>
+      )}
+      
+      {filteredNotes.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-gray-500 dark:text-gray-400">
+            {searchQuery || selectedTag ? 'No notes match your search' : 'No notes yet'}
+          </p>
+          {!searchQuery && !selectedTag && (
+            <Link
+              href="/notes/new"
+              className="mt-4 inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
+            >
+              Create your first note
+            </Link>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredNotes.map(note => (
+            <Link
+              key={note.id}
+              href={`/notes/${note.id}`}
+              className="block p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow"
+            >
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white truncate">{note.title}</h3>
+              
+              {note.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {note.tags.map(tag => (
+                    <span key={tag} className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+              
+              <div className="mt-2 text-sm text-gray-500 dark:text-gray-400 line-clamp-3">
+                {note.highlight ? (
+                  <p dangerouslySetInnerHTML={{ __html: `...${note.highlight}...` }} />
+                ) : (
+                  <p>{note.content.replace(/<[^>]*>/g, '').substring(0, 150)}...</p>
+                )}
+              </div>
+              
+              <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
+                {new Date(note.updatedAt).toLocaleDateString()}
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+```
+2. Create dashboard page in app/dashboard/page.tsx
+3. Create notes listing page in app/notes/page.tsx
+4. Create note detail page in app/notes/[id]/page.tsx
+5. Create new note page in app/notes/new/page.tsx
+6. Create archived notes page in app/archived/page.tsx
+7. Implement client-side filtering and searching
+
+# Test Strategy:
+1. Test note list rendering with various data sets
+2. Verify search functionality within the note list
+3. Test tag filtering in the note list
+4. Validate note card display with different content lengths
+5. Test navigation between list and detail views
+6. Verify empty state handling
+7. Test responsive layout on different screen sizes
+8. Validate highlight rendering in search results

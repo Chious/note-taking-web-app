@@ -1,0 +1,205 @@
+# Task ID: 3
+# Title: Authentication System Implementation (Email/Password + Google OAuth)
+# Status: pending
+# Dependencies: 1, 2
+# Priority: high
+# Description: Implement user registration, login with both email/password and Google OAuth authentication, JWT-based authentication with protected routes
+# Details:
+1. Install required packages:
+```bash
+npm install bcryptjs jsonwebtoken zod next-auth @auth/prisma-adapter
+npm install -D @types/bcryptjs @types/jsonwebtoken
+```
+2. Create authentication utilities in lib/auth.ts:
+```typescript
+import { compare, hash } from 'bcryptjs';
+import { sign, verify } from 'jsonwebtoken';
+
+export async function hashPassword(password: string): Promise<string> {
+  return hash(password, 12);
+}
+
+export async function verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
+  return compare(password, hashedPassword);
+}
+
+export function generateToken(userId: string): string {
+  return sign({ userId }, process.env.JWT_SECRET!, { expiresIn: '7d' });
+}
+
+export function verifyToken(token: string): { userId: string } | null {
+  try {
+    return verify(token, process.env.JWT_SECRET!) as { userId: string };
+  } catch (error) {
+    return null;
+  }
+}
+```
+3. Create registration API endpoint at app/api/register/route.ts:
+```typescript
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import prisma from '@/lib/db';
+import { hashPassword } from '@/lib/auth';
+
+const registerSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+});
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { email, password } = registerSchema.parse(body);
+    
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return NextResponse.json({ error: 'Email already in use' }, { status: 400 });
+    }
+    
+    const hashedPassword = await hashPassword(password);
+    const user = await prisma.user.create({
+      data: { email, password: hashedPassword },
+    });
+    
+    return NextResponse.json({ id: user.id, email: user.email }, { status: 201 });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.errors }, { status: 400 });
+    }
+    return NextResponse.json({ error: 'Registration failed' }, { status: 500 });
+  }
+}
+```
+4. Create login API endpoint at app/api/login/route.ts
+5. Implement middleware for protected routes
+6. Set up NextAuth.js with Google OAuth provider in app/api/auth/[...nextauth]/route.ts:
+```typescript
+import NextAuth from 'next-auth';
+import GoogleProvider from 'next-auth/providers/google';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import { PrismaAdapter } from '@auth/prisma-adapter';
+import prisma from '@/lib/db';
+import { verifyPassword } from '@/lib/auth';
+
+export const authOptions = {
+  adapter: PrismaAdapter(prisma),
+  providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
+    CredentialsProvider({
+      name: 'credentials',
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' }
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) return null;
+        
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email }
+        });
+        
+        if (!user || !user.password) return null;
+        
+        const isValid = await verifyPassword(credentials.password, user.password);
+        if (!isValid) return null;
+        
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          image: user.image,
+        };
+      }
+    }),
+  ],
+  session: { strategy: 'jwt' },
+  pages: {
+    signIn: '/login',
+    signUp: '/register',
+  },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (token) {
+        session.user.id = token.id;
+      }
+      return session;
+    },
+  },
+};
+
+const handler = NextAuth(authOptions);
+export { handler as GET, handler as POST };
+```
+7. Update Prisma schema to support OAuth fields (add to User model):
+```prisma
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String?   // nullable for OAuth users
+  name          String?
+  image         String?
+  provider      String    @default("email")
+  providerId    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  notes         Note[]
+  
+  // NextAuth required fields
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+```
+8. Create protected route wrapper component
+9. Add environment variables for Google OAuth:
+```env
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your_nextauth_secret
+```
+
+# Test Strategy:
+1. Test user registration with valid and invalid data
+2. Test login with correct and incorrect credentials
+3. Verify JWT token generation and validation
+4. Test protected routes with and without authentication
+5. Verify password hashing security
+6. Test session persistence and expiration
+7. Validate error handling for authentication failures

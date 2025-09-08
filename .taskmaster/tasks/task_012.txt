@@ -1,0 +1,167 @@
+# Task ID: 12
+# Title: Keyboard Navigation and Accessibility
+# Status: pending
+# Dependencies: 7, 8, 9, 10
+# Priority: medium
+# Description: Implement keyboard shortcuts and ensure accessibility compliance
+# Details:
+1. Create keyboard shortcut utility in app/lib/keyboard.ts:
+```typescript
+'use client';
+
+import { useEffect, useCallback } from 'react';
+
+type KeyboardShortcut = {
+  key: string;
+  ctrlKey?: boolean;
+  shiftKey?: boolean;
+  altKey?: boolean;
+  metaKey?: boolean;
+  action: () => void;
+  preventDefault?: boolean;
+};
+
+export function useKeyboardShortcuts(shortcuts: KeyboardShortcut[]) {
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      for (const shortcut of shortcuts) {
+        const keyMatch = event.key.toLowerCase() === shortcut.key.toLowerCase();
+        const ctrlMatch = shortcut.ctrlKey === undefined || event.ctrlKey === shortcut.ctrlKey;
+        const shiftMatch = shortcut.shiftKey === undefined || event.shiftKey === shortcut.shiftKey;
+        const altMatch = shortcut.altKey === undefined || event.altKey === shortcut.altKey;
+        const metaMatch = shortcut.metaKey === undefined || event.metaKey === shortcut.metaKey;
+        
+        if (keyMatch && ctrlMatch && shiftMatch && altMatch && metaMatch) {
+          if (shortcut.preventDefault !== false) {
+            event.preventDefault();
+          }
+          shortcut.action();
+          break;
+        }
+      }
+    },
+    [shortcuts]
+  );
+  
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
+}
+```
+2. Create accessibility components in app/components/ui:
+```typescript
+// app/components/ui/SkipLink.tsx
+'use client';
+
+export default function SkipLink() {
+  return (
+    <a
+      href="#main-content"
+      className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-md"
+    >
+      Skip to main content
+    </a>
+  );
+}
+
+// app/components/ui/KeyboardShortcutHelp.tsx
+'use client';
+
+import { useState } from 'react';
+import { useKeyboardShortcuts } from '@/lib/keyboard';
+
+export default function KeyboardShortcutHelp() {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  useKeyboardShortcuts([
+    {
+      key: '?',
+      shiftKey: true,
+      action: () => setIsOpen(true),
+    },
+    {
+      key: 'Escape',
+      action: () => setIsOpen(false),
+    },
+  ]);
+  
+  if (!isOpen) return null;
+  
+  const shortcuts = [
+    { keys: ['?'], description: 'Show keyboard shortcuts' },
+    { keys: ['Ctrl', 'S'], description: 'Save current note' },
+    { keys: ['Ctrl', '/'], description: 'Focus search' },
+    { keys: ['Ctrl', 'N'], description: 'Create new note' },
+    { keys: ['Esc'], description: 'Close dialogs' },
+    { keys: ['Alt', '←'], description: 'Go back to notes list' },
+  ];
+  
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md w-full p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">Keyboard Shortcuts</h2>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+        
+        <div className="space-y-2">
+          {shortcuts.map((shortcut, index) => (
+            <div key={index} className="flex justify-between items-center">
+              <span>{shortcut.description}</span>
+              <div className="flex space-x-1">
+                {shortcut.keys.map((key, keyIndex) => (
+                  <kbd
+                    key={keyIndex}
+                    className="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+                  >
+                    {key}
+                  </kbd>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+3. Implement keyboard shortcuts in NoteEditor component:
+```typescript
+// Add to NoteEditor.tsx
+import { useKeyboardShortcuts } from '@/lib/keyboard';
+
+// Inside component
+useKeyboardShortcuts([
+  {
+    key: 's',
+    ctrlKey: true,
+    action: () => saveNote(),
+  },
+  {
+    key: 'Escape',
+    action: () => router.push('/notes'),
+  },
+]);
+```
+4. Add focus management for form elements
+5. Implement ARIA attributes for interactive elements
+6. Add screen reader announcements for dynamic content
+7. Ensure proper tab order and focus indicators
+
+# Test Strategy:
+1. Test keyboard shortcuts for all defined actions
+2. Verify focus management across the application
+3. Test screen reader compatibility with assistive technology
+4. Validate ARIA attributes on interactive elements
+5. Test tab navigation through the application
+6. Verify keyboard accessibility of all interactive components
+7. Test skip link functionality
+8. Validate color contrast for accessibility compliance
