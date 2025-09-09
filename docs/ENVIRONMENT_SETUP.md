@@ -1,6 +1,6 @@
 # Environment Setup Guide
 
-This guide will help you set up the development environment for the Note-Taking Web App.
+This guide will help you set up the development environment for the Note-Taking Web App, deployed on Cloudflare's platform.
 
 ## Prerequisites
 
@@ -8,9 +8,8 @@ This guide will help you set up the development environment for the Note-Taking 
 
 - **Node.js** 18.0.0 or higher
 - **npm** 9.0.0 or higher
-- **PostgreSQL** 14.0 or higher
-- **Docker & Docker Compose** (recommended for development)
 - **Git** for version control
+- **Cloudflare Account** (free tier is sufficient)
 
 ### Development Tools (Recommended)
 
@@ -20,6 +19,7 @@ This guide will help you set up the development environment for the Note-Taking 
   - TypeScript and JavaScript Language Features
   - ESLint
   - Prettier
+  - Wrangler (Cloudflare extension)
 
 ## Quick Start
 
@@ -43,275 +43,251 @@ Create environment files from templates:
 
 ```bash
 # Copy environment template
-cp .env.example .env
+cp .dev.vars .env
 
-# Edit environment variables
+# Edit environment variables for local development
 nano .env  # or your preferred editor
 ```
 
 #### Required Environment Variables
 
-```env
-# Database
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/noteapp?schema=public"
-
-# NextAuth.js
-NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="your-super-secret-jwt-secret-here"
-
-# Google OAuth (for authentication)
-GOOGLE_CLIENT_ID="your-google-client-id"
-GOOGLE_CLIENT_SECRET="your-google-client-secret"
-
-# Email (for password reset)
-SMTP_HOST="smtp.gmail.com"
-SMTP_PORT="587"
-SMTP_SECURE="false"
-SMTP_USER="your-email@gmail.com"
-SMTP_PASSWORD="your-app-password"
-SMTP_FROM="your-email@gmail.com"
-
-# Optional: S3-compatible storage for images
-S3_BUCKET_URL="http://localhost:9000"
-S3_ACCESS_KEY="minioadmin"
-S3_SECRET_KEY="minioadmin"
-S3_BUCKET_NAME="notes-images"
-```
-
-### 3. Database Setup
-
-#### Option A: Using Docker (Recommended)
+Update your `.env` file with the following variables:
 
 ```bash
-# Start PostgreSQL with Docker Compose
-docker-compose up -d
+# Database (for local development)
+DATABASE_URL="file:./prisma/dev.db"
 
-# Verify database is running
-docker-compose ps
+# NextAuth.js (TD;LR - will be implemented with backend)
+NEXTAUTH_SECRET=your-nextauth-secret-here
+NEXTAUTH_URL=https://your-domain.com
+
+# Google OAuth (TD;LR - will be implemented with backend)
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+
+# Email Configuration (TD;LR - will be implemented with backend)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+
+# Cloudflare D1 Database ID (obtained after creating D1 database)
+D1_DATABASE_ID=your-d1-database-id
 ```
 
-#### Option B: Local PostgreSQL Installation
+## Cloudflare Deployment Setup
 
-1. Install PostgreSQL on your system
-2. Create a database:
-   ```sql
-   CREATE DATABASE noteapp;
-   CREATE USER postgres WITH PASSWORD 'postgres';
-   GRANT ALL PRIVILEGES ON DATABASE noteapp TO postgres;
-   ```
+### 1. Create Cloudflare Account and Resources
 
-### 4. Database Migration
+**Free tier is sufficient for development:**
+
+| Service | Usage                | Free Tier Limits     |
+| ------- | -------------------- | -------------------- |
+| Workers | Serverless Functions | 100,000 requests/day |
+| D1      | SQLite Database      | 5GB storage          |
+| R2      | Object Storage       | 10GB/month           |
+
+### 2. Install and Setup Wrangler CLI
 
 ```bash
-# Generate Prisma client
-npx prisma generate
+# Install Wrangler globally
+npm install -g wrangler
 
-# Run database migrations
-npx prisma migrate dev --name init
+# Login to Cloudflare (opens OAuth flow in browser)
+wrangler login
 
-# (Optional) Seed database with sample data
-npx prisma db seed
+# Verify login
+wrangler whoami
 ```
 
-### 5. Start Development Server
+### 3. Create Cloudflare Resources
 
 ```bash
-# Start the Next.js development server
+# Create D1 database for your app
+wrangler d1 create note-taking-app
+
+# Create R2 bucket for caching (optional but recommended)
+wrangler r2 bucket create note-taking-app-cache
+```
+
+After creating the D1 database, copy the database ID from the output and update your `.dev.vars` file:
+
+```bash
+# Add to .dev.vars
+D1_DATABASE_ID=your-actual-database-id-here
+```
+
+### 4. Configure wrangler.jsonc
+
+The project includes a pre-configured `wrangler.jsonc` file. Update the following values:
+
+```jsonc
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "main": ".open-next/worker.js",
+  "name": "note-taking-app", // Change to your app name
+  "compatibility_date": "2024-12-30",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "note-taking-app" // Must match "name" above
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "NEXT_INC_CACHE_R2_BUCKET",
+      "bucket_name": "note-taking-app-cache"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "note-taking-app",
+      "database_id": "your-d1-database-id"
+    }
+  ]
+}
+```
+
+### 5. Local Development
+
+```bash
+# Start local development server
 npm run dev
 
-# Server will be available at http://localhost:3000
+# Generate Cloudflare types (optional)
+npm run cf-typegen
 ```
 
-## Development Workflow
+### 6. Deployment Commands
 
-### Task Master Integration
-
-This project uses Task Master for organized development:
+The project includes pre-configured deployment scripts using OpenNext.js:
 
 ```bash
-# Check current task status
-task-master list
+# Preview deployment locally
+npm run preview
 
-# Get next recommended task
-task-master next
+# Deploy to Cloudflare
+npm run deploy
 
-# View specific task details
-task-master show 1
-
-# Start working on a task
-task-master set-status --id=1 --status=in-progress
-
-# Mark task as completed
-task-master set-status --id=1 --status=done
+# Build and upload (alternative deployment method)
+npm run upload
 ```
 
-### Code Quality Tools
+### 7. Environment Variables in Production
+
+Set production environment variables in Cloudflare Dashboard:
+
+1. Go to Workers & Pages > Your App > Settings > Environment Variables
+2. Add the following variables:
+   - `NEXTAUTH_SECRET`: Generate a secure random string
+   - `NEXTAUTH_URL`: Your production domain
+   - `D1_DATABASE_ID`: Your D1 database ID
+   - Other OAuth and SMTP credentials (TD;LR)
+
+## CI/CD with GitHub Actions
+
+### Recommended Workflow
+
+```mermaid
+graph TD
+    A[Push to main] --> B[Lint & Type Check]
+    B --> C[Build Application]
+    C --> D[Deploy to Cloudflare]
+
+    E[Pull Request] --> F[Lint & Type Check]
+    F --> G[Build Test]
+    G --> H[Preview Deployment]
+```
+
+### GitHub Actions Setup (TD;LR)
+
+Create `.github/workflows/deploy.yml`:
+
+```yaml
+# This will be implemented when CI/CD is set up
+# TD;LR - Deployment pipeline configuration
+```
+
+## Database Setup (D1 + Prisma ORM)
+
+### Current Status: TD;LR
+
+The database layer will be implemented using:
+
+- **Cloudflare D1**: SQLite-compatible database
+- **Prisma ORM**: Type-safe database client
+- **Database Schema**: Will include tables for users, notes, tags, etc.
+
+### Planned Implementation
 
 ```bash
-# Run linting
-npm run lint
-
-# Fix linting issues
-npm run lint:fix
-
-# Format code with Prettier
-npm run format
-
-# Type checking
-npm run type-check
-
-# Run tests
-npm run test
-
-# Run tests in watch mode
-npm run test:watch
+# Database operations (to be implemented)
+npx prisma generate        # Generate Prisma client
+npx prisma db push         # Push schema to D1
+npx prisma studio          # Database GUI (local development)
 ```
 
-## Google OAuth Setup
+### Schema Preview (TD;LR)
 
-### 1. Create Google Cloud Project
+```prisma
+// This is a preview - actual schema will be implemented later
+model User {
+  id    String @id @default(cuid())
+  email String @unique
+  name  String?
+  notes Note[]
+}
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select existing one
-3. Enable Google+ API
-
-### 2. Configure OAuth Consent Screen
-
-1. Go to "APIs & Services" → "OAuth consent screen"
-2. Choose "External" user type
-3. Fill required information:
-   - App name: "Note-Taking App"
-   - User support email: your email
-   - Developer contact: your email
-
-### 3. Create OAuth Credentials
-
-1. Go to "APIs & Services" → "Credentials"
-2. Click "Create Credentials" → "OAuth 2.0 Client IDs"
-3. Application type: "Web application"
-4. Name: "Note-Taking App"
-5. Authorized redirect URIs:
-   - `http://localhost:3000/api/auth/callback/google` (development)
-   - `https://yourdomain.com/api/auth/callback/google` (production)
-
-### 4. Update Environment Variables
-
-Copy the Client ID and Client Secret to your `.env` file:
-
-```env
-GOOGLE_CLIENT_ID="your-client-id-here"
-GOOGLE_CLIENT_SECRET="your-client-secret-here"
+model Note {
+  id      String @id @default(cuid())
+  title   String
+  content String
+  userId  String
+  user    User   @relation(fields: [userId], references: [id])
+}
 ```
-
-## Email Configuration
-
-### Gmail Setup (Recommended for Development)
-
-1. Enable 2-Factor Authentication on your Gmail account
-2. Generate an App Password:
-   - Go to Google Account settings
-   - Security → 2-Step Verification → App passwords
-   - Generate password for "Mail"
-3. Use the app password in your `.env` file
-
-### Alternative Email Providers
-
-- **Mailgun**: For production use
-- **SendGrid**: Alternative production option
-- **Mailtrap**: For testing email functionality
 
 ## Troubleshooting
 
 ### Common Issues
 
-#### Database Connection Issues
+1. **Wrangler Login Issues**
 
-```bash
-# Check if PostgreSQL is running
-docker-compose ps
+   ```bash
+   # Clear Wrangler cache and re-login
+   wrangler logout
+   wrangler login
+   ```
 
-# Restart database
-docker-compose restart db
+2. **Build Errors**
 
-# View database logs
-docker-compose logs db
-```
+   ```bash
+   # Clear Next.js cache
+   rm -rf .next
+   npm run build
+   ```
 
-#### Port Already in Use
+3. **Environment Variables Not Loading**
+   - Ensure `.dev.vars` exists for local development
+   - Check Cloudflare Dashboard for production variables
 
-```bash
-# Find process using port 3000
-lsof -i :3000
+### Support Resources
 
-# Kill the process (replace PID)
-kill -9 <PID>
+- [OpenNext.js Documentation](https://opennext.js.org/cloudflare)
+- [Cloudflare Workers Documentation](https://developers.cloudflare.com/workers/)
+- [Cloudflare D1 Documentation](https://developers.cloudflare.com/d1/)
+- [Wrangler CLI Documentation](https://developers.cloudflare.com/workers/wrangler/)
 
-# Or use different port
-npm run dev -- -p 3001
-```
+## Next Steps
 
-#### Prisma Issues
-
-```bash
-# Reset database (WARNING: This will delete all data)
-npx prisma migrate reset
-
-# Regenerate Prisma client
-npx prisma generate
-
-# View database in browser
-npx prisma studio
-```
-
-#### Node Modules Issues
-
-```bash
-# Clear npm cache
-npm cache clean --force
-
-# Delete node_modules and reinstall
-rm -rf node_modules package-lock.json
-npm install
-```
-
-### Getting Help
-
-1. Check the [Task Master documentation](https://github.com/eyaltoledano/claude-task-master)
-2. Review task details: `task-master show <task-id>`
-3. Check project issues on GitHub
-4. Consult the [Next.js documentation](https://nextjs.org/docs)
-5. Review [Prisma documentation](https://www.prisma.io/docs)
-
-## Development Best Practices
-
-### Code Organization
-
-- Follow the established folder structure
-- Use TypeScript for type safety
-- Implement proper error handling
-- Write tests for critical functionality
-
-### Database Best Practices
-
-- Always use migrations for schema changes
-- Never modify the database directly in production
-- Use transactions for complex operations
-- Implement proper indexing for performance
-
-### Security Considerations
-
-- Never commit sensitive data to version control
-- Use environment variables for all secrets
-- Implement proper authentication checks
-- Validate all user inputs
-- Use HTTPS in production
-
-### Performance
-
-- Implement proper caching strategies
-- Optimize database queries
-- Use Next.js Image component for images
-- Implement proper loading states
-- Monitor bundle size
-
-This setup guide should get you up and running quickly. For specific implementation details, refer to the individual task documentation in the `.taskmaster/tasks/` directory.
+1. Complete the environment setup following this guide
+2. Run `npm run dev` to start local development
+3. Implement database schema (TD;LR)
+4. Set up authentication system (TD;LR)
+5. Deploy to Cloudflare using `npm run deploy`

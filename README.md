@@ -55,6 +55,61 @@ A full-stack note-taking web application with user authentication, CRUD operatio
 
 ## 🛠 Tech Stack
 
+```mermaid
+graph TB
+    subgraph "Client Layer"
+        Browser[🌐 Browser<br/>React/Next.js Frontend]
+    end
+
+    subgraph "Cloudflare Infrastructure"
+        subgraph "Application Layer"
+            Worker[⚡ Cloudflare Workers<br/>Next.js App Runtime]
+
+            subgraph "Frontend Routes"
+                Pages["📄 Pages<br/>• / (Landing)<br/>• /dashboard<br/>• /notes<br/>• /settings"]
+            end
+
+            subgraph "API Layer"
+                API["🔌 API Routes<br/>• /api/auth<br/>• /api/notes<br/>• /api/users<br/>• /api/upload"]
+            end
+        end
+
+        subgraph "Storage Layer"
+            D1[(🗄️ Cloudflare D1<br/>SQLite Database<br/><br/>Tables:<br/>• users<br/>• notes<br/>• sessions<br/>• tags)]
+
+            R2[📁 Cloudflare R2<br/>Object Storage<br/><br/>Assets:<br/>• Images<br/>• Documents<br/>• Attachments<br/>• Cache]
+        end
+    end
+
+    subgraph "External Services"
+        OAuth[🔐 OAuth Providers<br/>Google, GitHub, etc.]
+        SMTP[📧 SMTP Service<br/>Email Notifications]
+    end
+
+    %% Client connections
+    Browser -.->|HTTPS Requests| Worker
+    Browser -.->|Asset Requests| R2
+
+    %% Internal connections
+    Worker --> Pages
+    Worker --> API
+    API -->|Prisma ORM| D1
+    API -.->|File Upload| R2
+    API -.->|Authentication| OAuth
+    API -.->|Email Service| SMTP
+
+    %% Styling
+    classDef client fill:#e1f5fe
+    classDef cloudflare fill:#f3e5f5
+    classDef storage fill:#e8f5e8
+    classDef external fill:#fff3e0
+
+    class Browser client
+    class Worker,Pages,API cloudflare
+    class D1,R2 storage
+    class OAuth,SMTP external
+```
+
 ### Frontend
 
 - **Next.js 14+** with App Router
@@ -74,13 +129,13 @@ A full-stack note-taking web application with user authentication, CRUD operatio
 
 ### Database
 
-- **PostgreSQL** as primary database
+- **SQLite** as primary database
 - **Prisma** for database management and migrations
-- **S3-compatible storage** for images
+- **R2 storage** for images
 
 ### DevOps & Testing
 
-- **Docker Compose** for development environment
+- **OpenNext.js** for development for cloudflare
 - **GitHub Actions** for CI/CD
 - **Vitest** for testing
 - **ESLint & Prettier** for code quality
