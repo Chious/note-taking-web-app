@@ -18,40 +18,53 @@ This document outlines the complete routing structure for the Note-Taking Web Ap
 
 All routes under `/dashboard` require authentication and will redirect to `/login` if not authenticated.
 
-| Route                   | Component                               | Description                           | Task Reference |
-| ----------------------- | --------------------------------------- | ------------------------------------- | -------------- |
-| `/dashboard`            | `DashboardLayout` → `NotesPage`         | Main dashboard with all notes         | Task 7, 10     |
-| `/dashboard/notes`      | `DashboardLayout` → `NotesPage`         | All notes listing (same as dashboard) | Task 10        |
-| `/dashboard/notes/[id]` | `DashboardLayout` → `NoteDetailPage`    | Individual note view/edit             | Task 9, 10     |
-| `/dashboard/notes/new`  | `DashboardLayout` → `NewNotePage`       | Create new note                       | Task 9         |
-| `/dashboard/archived`   | `DashboardLayout` → `ArchivedNotesPage` | Archived notes listing                | Task 10        |
-| `/dashboard/search`     | `DashboardLayout` → `SearchResultsPage` | Search results display                | Task 6, 10     |
-| `/dashboard/settings`   | `DashboardLayout` → `SettingsPage`      | User settings and preferences         | Task 11        |
-| `/dashboard/profile`    | `DashboardLayout` → `ProfilePage`       | User profile management               | Task 11        |
+| Route                        | Component                                 | Description                              | Implementation Status |
+| ---------------------------- | ----------------------------------------- | ---------------------------------------- | --------------------- |
+| `/dashboard/notes`           | `DashboardLayout` → `NotesPage`           | Main notes interface with mobile support | ✅ Implemented        |
+| `/dashboard/setting`         | `DashboardLayout` → `SettingsPage`        | User settings and preferences            | ✅ Implemented        |
+| `/dashboard/setting/theme`   | `DashboardLayout` → `ThemeSettingsPage`   | Color theme configuration                | ✅ Implemented        |
+| `/dashboard/setting/font`    | `DashboardLayout` → `FontSettingsPage`    | Font preferences                         | ✅ Implemented        |
+| `/dashboard/setting/account` | `DashboardLayout` → `AccountSettingsPage` | Account and password management          | ✅ Implemented        |
+| `/dashboard/archived`        | `DashboardLayout` → `ArchivedNotesPage`   | Archived notes listing                   | 🚧 Planned            |
+| `/dashboard/notes/[id]`      | `DashboardLayout` → `NoteDetailPage`      | Individual note view/edit                | 🚧 Planned            |
+| `/dashboard/notes/new`       | `DashboardLayout` → `NewNotePage`         | Create new note                          | 🚧 Planned            |
 
 ### Route Parameters and Query Strings
 
-#### Note Detail Route: `/dashboard/notes/[id]`
+#### Primary Route: `/dashboard/notes`
 
-- `id`: Note ID (string)
-- Query parameters:
-  - `edit=true`: Open in edit mode
-  - `version=<number>`: View specific version from history
+The application uses a single-page approach with URL parameters for state management:
 
-#### Search Route: `/dashboard/search`
+- **Navigation Parameters:**
 
-- Query parameters:
-  - `q`: Search query string
-  - `tag`: Filter by specific tag
-  - `archived`: Include archived notes (boolean)
-  - `sort`: Sort order (date, title, relevance)
+  - `nav`: Current navigation context
+    - `null` or omitted: All notes (default)
+    - `archived`: Archived notes view
+    - `tags`: Tags browsing view (mobile)
+    - `search`: Search interface (mobile)
+    - `settings`: Settings (redirects to `/dashboard/setting`)
 
-#### Notes Listing: `/dashboard/notes`
+- **Filtering Parameters:**
 
-- Query parameters:
-  - `tag`: Filter by tag
-  - `sort`: Sort order (date, title, updated)
-  - `view`: Display mode (list, grid, compact)
+  - `tag`: Filter notes by specific tag (string)
+  - `q`: Search query string for filtering notes
+  - `slug`: Currently selected note slug for editing
+
+- **Example URLs:**
+  - `/dashboard/notes` - Default all notes view
+  - `/dashboard/notes?nav=archived` - Archived notes
+  - `/dashboard/notes?tag=Dev` - Notes tagged with "Dev"
+  - `/dashboard/notes?q=react` - Search for "react"
+  - `/dashboard/notes?slug=react-performance-optimization` - Edit specific note
+  - `/dashboard/notes?nav=tags&tag=TypeScript` - Mobile: browsing tags, filtered by TypeScript
+
+#### Settings Routes: `/dashboard/setting`
+
+- Base route: `/dashboard/setting` - Settings overview
+- Action routes:
+  - `/dashboard/setting/theme` - Color theme settings
+  - `/dashboard/setting/font` - Font preferences
+  - `/dashboard/setting/account` - Account management
 
 ## API Routes
 
@@ -173,56 +186,140 @@ export function PublicRoute({ children }: { children: React.ReactNode }) {
 
 ## Navigation Structure
 
-### Main Navigation (Authenticated Users)
+### Desktop Navigation (Sidebar)
+
+Desktop navigation uses a traditional sidebar with sections:
 
 ```typescript
 const navigationItems = [
   {
-    name: "Dashboard",
-    href: "/dashboard",
-    icon: "HomeIcon",
-    current: pathname === "/dashboard",
+    section: "notes",
+    title: "Notes",
+    items: [
+      {
+        id: "all-notes",
+        label: "All Notes",
+        icon: FileText,
+        count: allNotesCount,
+        onClick: () => setNav(null),
+      },
+      {
+        id: "archived",
+        label: "Archived Notes",
+        icon: Archive,
+        count: archivedCount,
+        onClick: () => setNav("archived"),
+      },
+    ],
   },
   {
-    name: "All Notes",
-    href: "/dashboard/notes",
-    icon: "DocumentTextIcon",
-    current: pathname.startsWith("/dashboard/notes"),
+    section: "tags",
+    title: "Tags",
+    items: [
+      {
+        id: "all-tags",
+        label: "All Tags",
+        icon: Tag,
+        count: totalTagsCount,
+        onClick: () => setTag(null),
+      },
+      // Dynamic tag items with counts
+      ...tagItems,
+    ],
+  },
+];
+```
+
+### Mobile Navigation (Bottom Bar)
+
+Mobile navigation uses a bottom navigation bar:
+
+```typescript
+const mobileNavItems = [
+  {
+    id: "home",
+    label: "Home",
+    icon: FileText,
+    onClick: () => {
+      setNav(null);
+      setTag(null);
+    },
+    isActive: !nav && !tag,
   },
   {
-    name: "Archived",
-    href: "/dashboard/archived",
-    icon: "ArchiveBoxIcon",
-    current: pathname === "/dashboard/archived",
+    id: "search",
+    label: "Search",
+    icon: Search,
+    onClick: () => setNav("search"),
+    isActive: nav === "search",
   },
   {
-    name: "Search",
-    href: "/dashboard/search",
-    icon: "MagnifyingGlassIcon",
-    current: pathname === "/dashboard/search",
+    id: "archived",
+    label: "Archive",
+    icon: Archive,
+    onClick: () => {
+      setNav("archived");
+      setTag(null);
+    },
+    isActive: nav === "archived",
   },
   {
-    name: "Settings",
-    href: "/dashboard/settings",
-    icon: "CogIcon",
-    current: pathname === "/dashboard/settings",
+    id: "tags",
+    label: "Tags",
+    icon: Tag,
+    onClick: () => {
+      setTag(null);
+      setNav("tags");
+    },
+    isActive: nav === "tags",
+  },
+  {
+    id: "settings",
+    label: "Settings",
+    icon: Settings,
+    onClick: () => router.push("/dashboard/setting"),
+    isActive: false,
   },
 ];
 ```
 
 ### Breadcrumb Navigation
 
-Dynamic breadcrumbs based on current route:
+Dynamic breadcrumbs and headers based on current route and state:
 
-| Route                   | Breadcrumb                       |
-| ----------------------- | -------------------------------- |
-| `/dashboard`            | Dashboard                        |
-| `/dashboard/notes`      | Dashboard → Notes                |
-| `/dashboard/notes/[id]` | Dashboard → Notes → [Note Title] |
-| `/dashboard/notes/new`  | Dashboard → Notes → New Note     |
-| `/dashboard/archived`   | Dashboard → Archived Notes       |
-| `/dashboard/search`     | Dashboard → Search Results       |
-| `/dashboard/settings`   | Dashboard → Settings             |
+| Route/State                       | Desktop Header              | Mobile Header                   |
+| --------------------------------- | --------------------------- | ------------------------------- |
+| `/dashboard/notes`                | "My Notes"                  | "My Notes"                      |
+| `/dashboard/notes?nav=archived`   | "Archived Notes"            | "Archived Notes"                |
+| `/dashboard/notes?tag=Dev`        | "Tag: Dev"                  | "Tag: Dev"                      |
+| `/dashboard/notes?q=react`        | "Search: react"             | "Search: react"                 |
+| `/dashboard/notes?nav=tags`       | N/A (desktop sidebar)       | "All Tags"                      |
+| `/dashboard/notes?nav=search`     | N/A (desktop header search) | "Search"                        |
+| `/dashboard/notes?slug=note-slug` | Note title                  | Note title (with back button)   |
+| `/dashboard/setting`              | Page title                  | "Settings" (with back to notes) |
+| `/dashboard/setting/theme`        | Page title                  | Breadcrumb navigation           |
+| `/dashboard/setting/font`         | Page title                  | Breadcrumb navigation           |
+| `/dashboard/setting/account`      | Page title                  | Breadcrumb navigation           |
+
+### Current Implementation Status
+
+#### ✅ Completed Features
+
+- **Mobile-responsive navigation** with bottom bar and desktop sidebar
+- **URL parameter-based state management** for seamless navigation
+- **Note editing interface** with mobile-optimized editor
+- **Tag filtering and browsing** on both desktop and mobile
+- **Search functionality** with real-time filtering
+- **Archive view** for archived notes
+- **Settings pages** with theme, font, and account management
+- **Responsive layout system** with proper mobile/desktop switching
+
+#### 🚧 Planned Features
+
+- Individual note detail routes (`/dashboard/notes/[id]`)
+- Note creation workflow (`/dashboard/notes/new`)
+- Advanced search filters and sorting
+- Note sharing and collaboration features
 
 ## URL Patterns and SEO
 
@@ -278,15 +375,79 @@ const SearchResults = dynamic(() => import("@/components/SearchResults"), {
 
 ## Mobile Navigation
 
-### Responsive Route Handling
+### Responsive Design Implementation
 
-- Desktop: Sidebar navigation always visible
-- Tablet: Collapsible sidebar navigation
-- Mobile: Bottom tab navigation or hamburger menu
+The application uses a responsive design approach with different layouts for different screen sizes:
 
-### Mobile-Specific Routes
+#### Desktop (md and above)
 
-- `/dashboard/mobile-menu` - Mobile navigation overlay
-- Query parameter `?mobile=true` - Mobile-optimized views
+- **Sidebar Navigation**: Traditional left sidebar with sections for Notes and Tags
+- **Three-Column Layout**: Sidebar → Notes List → Note Editor/Actions
+- **Always Visible**: All navigation elements remain visible
 
-This routing structure provides a comprehensive foundation for the note-taking application, ensuring proper navigation flow, security, and user experience across all devices and use cases.
+#### Mobile (below md breakpoint)
+
+- **Bottom Navigation Bar**: Fixed bottom navigation with 5 main actions
+- **Single-Column Layout**: Full-screen views that switch based on navigation state
+- **Context-Aware Views**: Different full-screen interfaces for different actions
+
+### Mobile View States
+
+The mobile interface switches between different full-screen views based on URL parameters:
+
+1. **Default Notes List** (`/dashboard/notes`)
+
+   - Shows all notes with create button
+   - Tapping a note opens the editor
+
+2. **Note Editor** (`/dashboard/notes?slug=note-slug`)
+
+   - Full-screen editor with back button
+   - Note metadata and tags
+   - Mobile-optimized editor interface
+
+3. **Tags View** (`/dashboard/notes?nav=tags`)
+
+   - List of all tags with note counts
+   - Tapping a tag filters notes and returns to list
+
+4. **Search View** (`/dashboard/notes?nav=search` or `?q=query`)
+
+   - Search input with results
+   - Real-time filtering as user types
+
+5. **Archive View** (`/dashboard/notes?nav=archived`)
+
+   - Shows only archived notes
+   - Same interface as default notes list
+
+6. **Settings** (redirects to `/dashboard/setting`)
+   - Dedicated settings pages with back navigation
+   - Mobile-optimized forms and controls
+
+### State Management
+
+The application uses URL parameters for state persistence across mobile views:
+
+```typescript
+interface URLParams {
+  nav: string | null; // Navigation context
+  q: string | null; // Search query
+  tag: string | null; // Tag filter
+  slug: string | null; // Selected note
+}
+```
+
+### Mobile Navigation Flow
+
+```
+Bottom Nav Tap → URL Parameter Update → View State Change → UI Render
+
+Examples:
+- Tap "Search" → nav=search → Search interface
+- Tap "Tags" → nav=tags → Tags list interface
+- Tap "Archive" → nav=archived → Archived notes
+- Select note → slug=note-id → Note editor
+```
+
+This routing structure provides a comprehensive foundation for the note-taking application, ensuring proper navigation flow, security, and user experience across all devices and use cases. The mobile-first approach ensures excellent usability on all screen sizes while maintaining desktop functionality.
