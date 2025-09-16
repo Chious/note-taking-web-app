@@ -15,15 +15,70 @@
       {
         "id": 2,
         "title": "Database Schema and Prisma ORM Setup",
-        "description": "Set up PostgreSQL database schema using Prisma ORM with User and Notes models as specified in the PRD",
-        "details": "1. Install Prisma:\n```bash\nnpm install prisma @prisma/client\nnpx prisma init\n```\n2. Configure database connection in .env file:\n```\nDATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/noteapp?schema=public\"\n```\n3. Define Prisma schema in schema.prisma:\n```prisma\ngenerator client {\n  provider = \"prisma-client-js\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\nmodel User {\n  id        String   @id @default(cuid())\n  email     String   @unique\n  password  String\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n  notes     Note[]\n}\n\nmodel Note {\n  id         String   @id @default(cuid())\n  userId     String\n  title      String\n  content    String   @db.Text\n  tags       String[]\n  isArchived Boolean  @default(false)\n  createdAt  DateTime @default(now())\n  updatedAt  DateTime @updatedAt\n  lastEdited DateTime @default(now())\n  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)\n}\n```\n4. Create initial migration:\n```bash\nnpx prisma migrate dev --name init\n```\n5. Generate Prisma client:\n```bash\nnpx prisma generate\n```\n6. Create a database service file at lib/db.ts:\n```typescript\nimport { PrismaClient } from '@prisma/client';\n\nconst globalForPrisma = global as unknown as { prisma: PrismaClient };\n\nexport const prisma = globalForPrisma.prisma || new PrismaClient();\n\nif (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;\n\nexport default prisma;\n```",
-        "testStrategy": "1. Verify Prisma schema matches the requirements in the PRD\n2. Test database connection using Prisma Studio\n3. Create test records and verify relationships between User and Notes\n4. Validate constraints like unique email and foreign key relationships\n5. Test migration rollback and reapplication",
-        "priority": "high",
+        "description": "Set up Cloudflare D1 (SQLite) database schema using Prisma ORM with User and Notes models as specified in the PRD",
+        "status": "done",
         "dependencies": [
           1
         ],
-        "status": "pending",
-        "subtasks": []
+        "priority": "high",
+        "details": "1. Install Prisma:\n```bash\nnpm install prisma @prisma/client\nnpx prisma init\n```\n2. Configure database connection in .env file for D1:\n```\nDATABASE_URL=\"file:./dev.db\"\n```\n3. Define Prisma schema in schema.prisma for D1 (SQLite):\n```prisma\ngenerator client {\n  provider = \"prisma-client-js\"\n}\n\ndatasource db {\n  provider = \"sqlite\"\n  url      = env(\"DATABASE_URL\")\n}\n\nmodel User {\n  id        String   @id @default(cuid())\n  email     String   @unique\n  password  String\n  createdAt DateTime @default(now())\n  updatedAt DateTime @updatedAt\n  notes     Note[]\n}\n\nmodel Note {\n  id         String   @id @default(cuid())\n  userId     String\n  title      String\n  content    String\n  tags       String\n  isArchived Boolean  @default(false)\n  createdAt  DateTime @default(now())\n  updatedAt  DateTime @updatedAt\n  lastEdited DateTime @default(now())\n  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)\n}\n```\n4. Create initial migration:\n```bash\nnpx prisma migrate dev --name init\n```\n5. Generate Prisma client:\n```bash\nnpx prisma generate\n```\n6. Create a database service file at lib/db.ts:\n```typescript\nimport { PrismaClient } from '@prisma/client';\n\nconst globalForPrisma = global as unknown as { prisma: PrismaClient };\n\nexport const prisma = globalForPrisma.prisma || new PrismaClient();\n\nif (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;\n\nexport default prisma;\n```\n7. Configure Cloudflare D1 binding in wrangler.toml:\n```toml\n[[d1_databases]]\nname = \"noteapp\"\ndatabase_name = \"noteapp\"\ndatabase_id = \"<your-d1-database-id>\"\n```\n8. Create a D1 database using Cloudflare Wrangler CLI:\n```bash\nnpx wrangler d1 create noteapp\n```\n9. Update the Note model's tags field to handle SQLite limitations with arrays:\n   - SQLite doesn't natively support arrays, so store tags as a comma-separated string",
+        "testStrategy": "1. Verify Prisma schema matches the requirements in the PRD and is compatible with SQLite\n2. Test database connection using Prisma Studio with the local SQLite database\n3. Create test records and verify relationships between User and Notes\n4. Validate constraints like unique email and foreign key relationships\n5. Test migration rollback and reapplication\n6. Test Cloudflare D1 connection in development environment\n7. Verify data persistence in the D1 database\n8. Test the tags implementation as a string with comma separation\n9. Validate that the database works correctly when deployed to Cloudflare Workers/Pages",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Install and configure Prisma for SQLite/D1",
+            "description": "",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Create D1 database in Cloudflare",
+            "description": "",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Configure Cloudflare D1 bindings in wrangler.toml",
+            "description": "",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Adapt schema for SQLite limitations (array handling)",
+            "description": "",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Test database operations in local development",
+            "description": "",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Test database operations in Cloudflare environment",
+            "description": "",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          }
+        ]
       },
       {
         "id": 3,
@@ -218,7 +273,7 @@
     ],
     "metadata": {
       "created": "2025-09-08T06:11:37.891Z",
-      "updated": "2025-09-16T03:20:16.946Z",
+      "updated": "2025-09-16T03:35:28.316Z",
       "description": "Tasks for master context"
     }
   }

@@ -164,20 +164,56 @@ npm run dev
 npm run cf-typegen
 ```
 
-### 6. Deployment Commands
+### 6. Available Scripts
 
-The project includes pre-configured deployment scripts using OpenNext.js:
+The project includes comprehensive scripts for development, testing, and deployment:
+
+#### Development Scripts
 
 ```bash
-# Preview deployment locally
-npm run preview
-
-# Deploy to Cloudflare
-npm run deploy
-
-# Build and upload (alternative deployment method)
-npm run upload
+npm run dev              # Start development server
+npm run build            # Build for production
+npm run start            # Start production server
+npm run lint             # Run ESLint
+npm run lint:fix         # Fix ESLint issues
+npm run type-check       # TypeScript type checking
+npm run test             # Run tests
 ```
+
+#### Database Scripts
+
+```bash
+npm run db:generate      # Generate Prisma client
+npm run db:migrate       # Create and apply migration (dev)
+npm run db:migrate:local # Apply migrations to local D1
+npm run db:migrate:deploy # Apply migrations to remote D1
+npm run db:studio        # Open Prisma Studio
+npm run db:seed          # Seed database with sample data
+npm run db:reset         # Reset database
+npm run db:status        # Check migration status
+npm run db:tables        # Show database tables
+```
+
+#### Deployment Scripts
+
+```bash
+npm run preview          # Preview deployment locally
+npm run deploy           # Deploy to Cloudflare (production)
+npm run deploy:preview   # Deploy preview version
+npm run upload           # Alternative deployment method
+npm run cf-typegen       # Generate Cloudflare types
+```
+
+#### CI/CD Integration
+
+These scripts are used in the GitHub Actions workflow:
+
+- `npm run lint` - Code quality checks
+- `npm run type-check` - TypeScript validation
+- `npm run test` - Run test suite
+- `npm run db:generate` - Prepare database client
+- `npm run db:migrate:deploy` - Apply production migrations
+- `npm run deploy` - Deploy to production
 
 ### 7. Environment Variables in Production
 
@@ -192,66 +228,239 @@ Set production environment variables in Cloudflare Dashboard:
 
 ## CI/CD with GitHub Actions
 
-### Recommended Workflow
+### Deployment Workflow
 
 ```mermaid
 graph TD
     A[Push to main] --> B[Lint & Type Check]
     B --> C[Build Application]
-    C --> D[Deploy to Cloudflare]
+    C --> D[Run Database Migrations]
+    D --> E[Deploy to Cloudflare]
+    E --> F[Post-deployment Tests]
 
-    E[Pull Request] --> F[Lint & Type Check]
-    F --> G[Build Test]
-    G --> H[Preview Deployment]
+    G[Pull Request] --> H[Lint & Type Check]
+    H --> I[Build Test]
+    I --> J[Preview Deployment]
+    J --> K[Integration Tests]
 ```
 
-### GitHub Actions Setup (TD;LR)
+### Trigger Conditions
+
+| Event               | Branch | Action                     |
+| ------------------- | ------ | -------------------------- |
+| `push`              | `main` | Full deployment pipeline   |
+| `pull_request`      | `*`    | Preview deployment + tests |
+| `workflow_dispatch` | `main` | Manual deployment          |
+| `schedule`          | `main` | Nightly health checks      |
+
+### GitHub Actions Setup
 
 Create `.github/workflows/deploy.yml`:
 
 ```yaml
-# This will be implemented when CI/CD is set up
-# TD;LR - Deployment pipeline configuration
+name: Deploy to Cloudflare
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  lint-and-test:
+    name: Lint and Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint code
+        run: npm run lint
+
+      - name: Type check
+        run: npm run type-check
+
+      - name: Run tests
+        run: npm run test
+
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run db:generate
+
+      - name: Build application
+        run: npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-files
+          path: .next
+
+  deploy:
+    name: Deploy to Cloudflare
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-files
+          path: .next
+
+      - name: Apply database migrations
+        run: npm run db:migrate:deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      - name: Deploy to Cloudflare
+        run: npm run deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+  preview:
+    name: Preview Deployment
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-files
+          path: .next
+
+      - name: Deploy preview
+        run: npm run deploy:preview
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 ```
+
+### Required GitHub Secrets
+
+Configure the following secrets in your GitHub repository settings:
+
+| Secret                  | Description                                        | How to obtain                                  |
+| ----------------------- | -------------------------------------------------- | ---------------------------------------------- |
+| `CLOUDFLARE_API_TOKEN`  | Cloudflare API token with Workers:Edit permissions | Cloudflare Dashboard > My Profile > API Tokens |
+| `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare account ID                         | Cloudflare Dashboard > Right sidebar           |
 
 ## Database Setup (D1 + Prisma ORM)
 
-### Current Status: TD;LR
+### ✅ Database Status: Configured and Ready
 
-The database layer will be implemented using:
+The database layer has been implemented using:
 
-- **Cloudflare D1**: SQLite-compatible database
-- **Prisma ORM**: Type-safe database client
-- **Database Schema**: Will include tables for users, notes, tags, etc.
+- **Cloudflare D1**: SQLite-compatible serverless database
+- **Prisma ORM**: Type-safe database client with full TypeScript support
+- **Database Schema**: Complete with User and Note models
 
-### Planned Implementation
+### ✅ D1 Database Configuration
+
+Your D1 database has been created and configured:
+
+- **Database Name**: `noteapp`
+- **Database ID**: `d1863666-f3e9-4a11-9931-358805aa29fd`
+- **Binding**: `DB` (configured in `wrangler.jsonc`)
+
+### Database Operations
 
 ```bash
-# Database operations (to be implemented)
-npx prisma generate        # Generate Prisma client
-npx prisma db push         # Push schema to D1
-npx prisma studio          # Database GUI (local development)
+# Generate Prisma client
+npx prisma generate
+
+# Create and apply migrations
+npx prisma migrate dev --name migration_name
+
+# Database GUI for local development
+npx prisma studio
+
+# D1-specific migration commands
+npx wrangler d1 migrations apply noteapp          # Apply to local D1
+npx wrangler d1 migrations apply noteapp --remote # Apply to remote D1
+
+# Helper script for D1 operations
+./scripts/migrate-d1.sh apply                     # Apply all migrations
+./scripts/migrate-d1.sh list                      # Check migration status
+./scripts/migrate-d1.sh tables                    # Show database tables
 ```
 
-### Schema Preview (TD;LR)
+### Current Database Schema
 
 ```prisma
-// This is a preview - actual schema will be implemented later
 model User {
-  id    String @id @default(cuid())
-  email String @unique
-  name  String?
-  notes Note[]
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  notes     Note[]
 }
 
 model Note {
-  id      String @id @default(cuid())
-  title   String
-  content String
-  userId  String
-  user    User   @relation(fields: [userId], references: [id])
+  id         String   @id @default(cuid())
+  userId     String
+  title      String
+  content    String
+  tags       String   // Stored as comma-separated string for SQLite compatibility
+  isArchived Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  lastEdited DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 ```
+
+### Tags Handling
+
+Since SQLite doesn't support arrays natively, tags are stored as comma-separated strings. Helper functions are available in `src/types/database.ts`:
+
+- `parseTags(tagsString)` - Convert string to array
+- `formatTags(tagsArray)` - Convert array to string
+
+### Migration Files
+
+- **Prisma Migrations**: `prisma/migrations/` (for local development)
+- **D1 Migrations**: `migrations/` (for D1 database deployment)
+- **Migration Helper**: `scripts/migrate-d1.sh` (automated migration script)
 
 ## Troubleshooting
 

@@ -1,9 +1,9 @@
 # Task ID: 5
-# Title: Note CRUD API Implementation (with Edit History)
+# Title: Note CRUD API Implementation
 # Status: pending
 # Dependencies: 2, 3
 # Priority: high
-# Description: Implement API endpoints for creating, reading, updating, and deleting notes with edit history tracking
+# Description: Implement API endpoints for creating, reading, updating, and deleting notes
 # Details:
 1. Create notes API endpoints in app/api/notes/route.ts:
 ```typescript
@@ -70,19 +70,6 @@ export async function POST(request: Request) {
         content,
         tags,
         userId: session.user.id,
-      },
-    });
-    
-    // Create initial history entry
-    await prisma.noteHistory.create({
-      data: {
-        noteId: note.id,
-        userId: session.user.id,
-        title,
-        content,
-        tags,
-        version: 1,
-        changeType: 'create',
       },
     });
     

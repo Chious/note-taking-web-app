@@ -1,112 +1,50 @@
 # Task ID: 2
-# Title: Database Schema and Prisma ORM Setup (with OAuth + Edit History Support)
-# Status: pending
+# Title: Database Schema and Prisma ORM Setup
+# Status: done
 # Dependencies: 1
 # Priority: high
-# Description: Set up PostgreSQL database schema using Prisma ORM with User, Notes, NoteHistory models, and NextAuth OAuth models as specified in the PRD
+# Description: Set up Cloudflare D1 (SQLite) database schema using Prisma ORM with User and Notes models as specified in the PRD
 # Details:
 1. Install Prisma:
 ```bash
 npm install prisma @prisma/client
 npx prisma init
 ```
-2. Configure database connection in .env file:
+2. Configure database connection in .env file for D1:
 ```
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/noteapp?schema=public"
+DATABASE_URL="file:./dev.db"
 ```
-3. Define Prisma schema in schema.prisma:
+3. Define Prisma schema in schema.prisma for D1 (SQLite):
 ```prisma
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id            String        @id @default(cuid())
-  email         String        @unique
-  password      String?       // nullable for OAuth users
-  name          String?
-  image         String?
-  provider      String        @default("email")
-  providerId    String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  notes         Note[]
-  noteHistory   NoteHistory[]
-  
-  // NextAuth required fields
-  accounts      Account[]
-  sessions      Session[]
-}
-
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  notes     Note[]
 }
 
 model Note {
-  id         String        @id @default(cuid())
-  userId     String
-  title      String
-  content    String        @db.Text
-  tags       String[]
-  isArchived Boolean       @default(false)
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
-  lastEdited DateTime      @default(now())
-  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  history    NoteHistory[]
-}
-
-model NoteHistory {
   id         String   @id @default(cuid())
-  noteId     String
   userId     String
   title      String
-  content    String   @db.Text
-  tags       String[]
-  version    Int      @default(autoincrement())
-  changeType String   // 'create', 'update', 'title_change', 'content_change', 'tags_change'
+  content    String
+  tags       String
+  isArchived Boolean  @default(false)
   createdAt  DateTime @default(now())
-  note       Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  updatedAt  DateTime @updatedAt
+  lastEdited DateTime @default(now())
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@index([noteId, version])
-  @@index([userId, createdAt])
 }
 ```
 4. Create initial migration:
@@ -129,13 +67,65 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 export default prisma;
 ```
+7. Configure Cloudflare D1 binding in wrangler.toml:
+```toml
+[[d1_databases]]
+name = "noteapp"
+database_name = "noteapp"
+database_id = "<your-d1-database-id>"
+```
+8. Create a D1 database using Cloudflare Wrangler CLI:
+```bash
+npx wrangler d1 create noteapp
+```
+9. Update the Note model's tags field to handle SQLite limitations with arrays:
+   - SQLite doesn't natively support arrays, so store tags as a comma-separated string
 
 # Test Strategy:
-1. Verify Prisma schema matches the requirements in the PRD
-2. Test database connection using Prisma Studio
+1. Verify Prisma schema matches the requirements in the PRD and is compatible with SQLite
+2. Test database connection using Prisma Studio with the local SQLite database
 3. Create test records and verify relationships between User and Notes
 4. Validate constraints like unique email and foreign key relationships
 5. Test migration rollback and reapplication
-6. Verify NextAuth OAuth models work correctly with Google authentication
-7. Test user creation through both email/password and Google OAuth flows
-8. Validate account linking for users with same email from different providers
+6. Test Cloudflare D1 connection in development environment
+7. Verify data persistence in the D1 database
+8. Test the tags implementation as a string with comma separation
+9. Validate that the database works correctly when deployed to Cloudflare Workers/Pages
+
+# Subtasks:
+## 1. Install and configure Prisma for SQLite/D1 [done]
+### Dependencies: None
+### Description: 
+### Details:
+
+
+## 2. Create D1 database in Cloudflare [done]
+### Dependencies: None
+### Description: 
+### Details:
+
+
+## 3. Configure Cloudflare D1 bindings in wrangler.toml [done]
+### Dependencies: None
+### Description: 
+### Details:
+
+
+## 4. Adapt schema for SQLite limitations (array handling) [done]
+### Dependencies: None
+### Description: 
+### Details:
+
+
+## 5. Test database operations in local development [done]
+### Dependencies: None
+### Description: 
+### Details:
+
+
+## 6. Test database operations in Cloudflare environment [done]
+### Dependencies: None
+### Description: 
+### Details:
+
+

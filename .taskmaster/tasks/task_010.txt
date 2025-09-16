@@ -1,6 +1,6 @@
 # Task ID: 10
 # Title: Note List and Dashboard UI
-# Status: pending
+# Status: done
 # Dependencies: 5, 6, 7, 9
 # Priority: high
 # Description: Create note listing, dashboard, and note detail views
