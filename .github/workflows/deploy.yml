@@ -47,20 +47,38 @@ jobs:
       - name: Generate Prisma client
         run: npm run db:generate
 
-      - name: Build application
+      - name: Build Next.js application
         run: npm run build
         env:
           NODE_ENV: production
           NEXT_TELEMETRY_DISABLED: 1
+
+      - name: Build OpenNext for Cloudflare
+        run: npx opennextjs-cloudflare build
+        env:
+          NODE_ENV: production
+
+      - name: List build outputs (debug)
+        run: |
+          echo "Listing current directory:"
+          ls -la
+          echo "Checking for .next directory:"
+          ls -la .next/ || echo ".next directory not found"
+          echo "Checking for .open-next directory:"
+          ls -la .open-next/ || echo ".open-next directory not found"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-files
           path: |
-            .next/
-            .open-next/
+            .next
+            .open-next
+            package.json
+            package-lock.json
+            wrangler.jsonc
           retention-days: 1
+          if-no-files-found: error
 
   deploy:
     name: Deploy to Cloudflare
@@ -89,9 +107,10 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
       - name: Deploy to Cloudflare
-        run: npm run deploy
+        run: npx opennextjs-cloudflare deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
   preview:
     name: Preview Deployment
@@ -115,9 +134,10 @@ jobs:
           path: .
 
       - name: Deploy preview
-        run: npm run deploy:preview
+        run: npx opennextjs-cloudflare preview
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Comment PR
         uses: actions/github-script@v7
