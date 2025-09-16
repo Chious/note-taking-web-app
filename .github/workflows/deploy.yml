@@ -57,7 +57,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: build-files
-          path: .next
+          path: |
+            .next/
+            .open-next/
+          retention-days: 1
 
   deploy:
     name: Deploy to Cloudflare
@@ -78,7 +81,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: build-files
-          path: .next
+          path: .
 
       - name: Apply database migrations
         run: npm run db:migrate:deploy
@@ -109,7 +112,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: build-files
-          path: .next
+          path: .
 
       - name: Deploy preview
         run: npm run deploy:preview
