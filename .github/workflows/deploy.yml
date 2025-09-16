@@ -60,12 +60,12 @@ jobs:
         with:
           name: build-files
           path: |
-            .next/
-            .open-next/
+            .next
+            .open-next
             package.json
             package-lock.json
             wrangler.jsonc
-            node_modules/.bin/
+            open-next.config.ts
           retention-days: 1
           if-no-files-found: error
 
@@ -95,6 +95,17 @@ jobs:
           ls -la .open-next/ || echo ".open-next directory not found"
           echo "Looking for OpenNext config files:"
           find . -name "*.config.json" -o -name "open-next.config.*" -o -name ".opennext*" 2>/dev/null || echo "No OpenNext config files found"
+
+      - name: Rebuild OpenNext if missing
+        run: |
+          if [ ! -d ".open-next" ] || [ ! -f ".open-next/worker.js" ]; then
+            echo "🔧 .open-next missing, rebuilding OpenNext..."
+            npx opennextjs-cloudflare build
+            echo "✅ OpenNext rebuild completed"
+            ls -la .open-next/ || echo "Still no .open-next after rebuild"
+          else
+            echo "✅ .open-next directory found"
+          fi
       - name: Apply database migrations
         run: npm run db:migrate:deploy
         env:
