@@ -6,7 +6,7 @@ This guide will help you set up the development environment for the Note-Taking 
 
 ### System Requirements
 
-- **Node.js** 18.0.0 or higher
+- **Node.js** 20.0.0 or higher
 - **npm** 9.0.0 or higher
 - **Git** for version control
 - **Cloudflare Account** (free tier is sufficient)
@@ -275,7 +275,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "20"
           cache: "npm"
 
       - name: Install dependencies
@@ -298,7 +298,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "20"
           cache: "npm"
 
       - name: Install dependencies
@@ -325,7 +325,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "20"
           cache: "npm"
 
       - name: Install dependencies
@@ -356,7 +356,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "20"
           cache: "npm"
 
       - name: Install dependencies
