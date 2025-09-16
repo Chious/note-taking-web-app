@@ -55,17 +55,25 @@ jobs:
           find . -name "*.config.json" -o -name "open-next.config.*" -o -name ".opennext*" 2>/dev/null || echo "No OpenNext config files found"
           echo "Checking .open-next contents:"
           find .open-next -type f 2>/dev/null | head -20 || echo "No .open-next files found"
+      - name: Create compressed build archive
+        run: |
+          echo "Creating compressed archive with all build files..."
+          tar -czf build-artifacts.tar.gz \
+            .next \
+            .open-next \
+            package.json \
+            package-lock.json \
+            wrangler.jsonc \
+            open-next.config.ts \
+            2>/dev/null || echo "Some files may not exist, continuing..."
+          echo "Archive created successfully"
+          ls -lh build-artifacts.tar.gz
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-files
-          path: |
-            .next
-            .open-next
-            package.json
-            package-lock.json
-            wrangler.jsonc
-            open-next.config.ts
+          path: build-artifacts.tar.gz
           retention-days: 1
           if-no-files-found: error
 
@@ -87,14 +95,23 @@ jobs:
         with:
           name: build-files
           path: .
-      - name: Verify downloaded artifacts
+
+      - name: Extract build artifacts
         run: |
-          echo "Verifying downloaded files:"
+          echo "Extracting build artifacts..."
+          ls -lh build-artifacts.tar.gz
+          tar -xzf build-artifacts.tar.gz
+          rm build-artifacts.tar.gz
+          echo "Extraction completed"
+
+      - name: Verify extracted artifacts
+        run: |
+          echo "Verifying extracted files:"
           ls -la
           echo "Checking .open-next directory:"
           ls -la .open-next/ || echo ".open-next directory not found"
-          echo "Looking for OpenNext config files:"
-          find . -name "*.config.json" -o -name "open-next.config.*" -o -name ".opennext*" 2>/dev/null || echo "No OpenNext config files found"
+          echo "Checking .open-next/worker.js:"
+          ls -la .open-next/worker.js || echo "worker.js not found"
 
       - name: Rebuild OpenNext if missing
         run: |
@@ -135,12 +152,23 @@ jobs:
         with:
           name: build-files
           path: .
-      - name: Verify downloaded artifacts
+
+      - name: Extract build artifacts
         run: |
-          echo "Verifying downloaded files for preview:"
+          echo "Extracting build artifacts for preview..."
+          ls -lh build-artifacts.tar.gz
+          tar -xzf build-artifacts.tar.gz
+          rm build-artifacts.tar.gz
+          echo "Extraction completed"
+
+      - name: Verify extracted artifacts
+        run: |
+          echo "Verifying extracted files for preview:"
           ls -la
           echo "Checking .open-next directory:"
           ls -la .open-next/ || echo ".open-next directory not found"
+          echo "Checking .open-next/worker.js:"
+          ls -la .open-next/worker.js || echo "worker.js not found"
       - name: Deploy preview
         run: npx opennextjs-cloudflare preview
         env:
