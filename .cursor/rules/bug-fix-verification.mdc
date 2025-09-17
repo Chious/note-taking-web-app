@@ -1,0 +1,13 @@
+---
+description: "Bug 修正必須附帶可驗證測試與不確定性提示"
+alwaysApply: true
+---
+
+# Bug 修正驗證規則（Bug-Fix Verification Rule）
+
+- 當 Agent 報告「Bug 已修復」時，必須附帶至少一個單元測試或整合測試，並提供執行方式（例如命令、預期輸入與預期輸出）。
+- 測試必須先 fail（證明 Bug 存在），再因為修復而 pass。
+- 如果修復涉及外部資源或文件（如 Cloudflare, API 文件, GitHub Action workflow YAML schema 等），必須提供官方文件／參考來源連結。
+- 如資料不足以判定 Bug 是否修復，Agent 必須在回答中明確標示：「⚠️ 尚需驗證」並列出所需補充資料，例如錯誤訊息、Log、Stack trace、測試報告等。
+- Agent 不得在未提供上述驗證的情況下宣稱「Bug 已修復」。
+- 此規則適用於所有 Bug fix 型任務與 pull request。

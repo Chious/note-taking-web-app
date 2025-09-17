@@ -1,0 +1,121 @@
+---
+description: API endpoint documentation must be centralized in API_DOCUMENTATION.md
+globs: src/app/api/**/*.ts, docs/**/*.md
+alwaysApply: true
+---
+
+# API Documentation Centralization Rule
+
+## **Centralized API Documentation**
+
+- **ALL API endpoints MUST be documented in `docs/API_DOCUMENTATION.md`**
+- **NO separate API documentation files should be created**
+- **NO API endpoint documentation in individual route files beyond OpenAPI annotations**
+
+## **Documentation Structure**
+
+### **Required Format in API_DOCUMENTATION.md**
+
+```markdown
+#### Endpoint Name
+
+- **METHOD** `/api/endpoint-path`
+- **Description**: Brief description of what the endpoint does
+- **Body**: Request body schema (if applicable)
+- **Headers**: Required headers (if applicable)
+- **Response**: Response schema description
+- **Errors**: Possible error responses
+```
+
+### **OpenAPI Annotations in Route Files**
+
+Route files should ONLY contain OpenAPI annotations for automatic generation:
+
+```typescript
+/**
+ * @body RequestSchema
+ * @response ResponseSchema:Description
+ * @responseSet auth
+ * @openapi
+ */
+export async function POST(request: Request) {
+  // Implementation
+}
+```
+
+## **What NOT to Do**
+
+- ❌ Create separate API documentation files
+- ❌ Write detailed API docs in route files
+- ❌ Duplicate API documentation across multiple files
+- ❌ Create API docs in README or other markdown files
+
+## **What TO Do**
+
+- ✅ Add all new endpoints to `API_DOCUMENTATION.md`
+- ✅ Use OpenAPI annotations in route files for auto-generation
+- ✅ Keep detailed documentation centralized
+- ✅ Update the main documentation when adding new endpoints
+
+## **Workflow for New Endpoints**
+
+1. **Add OpenAPI annotations** to route file
+2. **Add endpoint documentation** to `API_DOCUMENTATION.md`
+3. **Regenerate docs** with `npx next-openapi-gen generate`
+4. **Test** the interactive documentation
+
+## **File Organization**
+
+- **Main API Docs**: `docs/API_DOCUMENTATION.md` (single source of truth)
+- **Route Files**: Only OpenAPI annotations for auto-generation
+- **Schemas**: `src/schemas/auth.ts` for Zod schemas
+- **Config**: `next.openapi.json` for OpenAPI configuration
+
+## **Benefits of Centralization**
+
+- **Single Source of Truth**: All API docs in one place
+- **Consistency**: Uniform documentation format
+- **Maintainability**: Easy to update and manage
+- **Discoverability**: Developers know where to find API docs
+- **Automation**: OpenAPI annotations generate interactive docs
+
+## **Examples**
+
+### **✅ Correct: Adding to API_DOCUMENTATION.md**
+
+```markdown
+#### Create Note
+
+- **POST** `/api/notes`
+- **Description**: Create a new note
+- **Body**: `{ "title": "Note Title", "content": "Note content" }`
+- **Response**: Created note object with ID and timestamps
+- **Errors**: 400 (Validation), 401 (Unauthorized), 500 (Server Error)
+```
+
+### **✅ Correct: Route File with OpenAPI Annotations**
+
+```typescript
+/**
+ * @body CreateNoteSchema
+ * @response NoteSchema:Note created successfully
+ * @responseSet auth
+ * @openapi
+ */
+export async function POST(request: Request) {
+  // Implementation
+}
+```
+
+### **❌ Incorrect: Separate API Documentation File**
+
+```markdown
+# notes-api.md
+
+## Create Note
+
+POST /api/notes
+...
+```
+
+This rule ensures all API documentation remains centralized and maintainable while leveraging OpenAPI annotations for automatic interactive documentation generation.

@@ -57,22 +57,32 @@ Update your `.env` file with the following variables:
 # Database (for local development)
 DATABASE_URL="file:./prisma/dev.db"
 
-# NextAuth.js (TD;LR - will be implemented with backend)
-NEXTAUTH_SECRET=your-nextauth-secret-here
-NEXTAUTH_URL=https://your-domain.com
+# JWT Authentication (REQUIRED - used in auth.ts)
+JWT_SECRET=your-super-secret-jwt-key-here-at-least-32-characters-long
 
-# Google OAuth (TD;LR - will be implemented with backend)
+# NextAuth.js Configuration
+NEXTAUTH_SECRET=your-nextauth-secret-here-at-least-32-characters-long
+NEXTAUTH_URL=http://localhost:3000
+
+# API Documentation Authentication (Production)
+API_DOCS_USERNAME=admin
+API_DOCS_PASSWORD=your-secure-password-here
+
+# Cloudflare D1 Database ID (obtained after creating D1 database)
+D1_DATABASE_ID=your-d1-database-id
+
+# Development Environment
+NODE_ENV=development
+
+# Optional: Google OAuth (TD;LR - will be implemented with backend)
 GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 
-# Email Configuration (TD;LR - will be implemented with backend)
+# Optional: Email Configuration (TD;LR - will be implemented with backend)
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
 SMTP_PASSWORD=your-app-password
-
-# Cloudflare D1 Database ID (obtained after creating D1 database)
-D1_DATABASE_ID=your-d1-database-id
 ```
 
 ## Cloudflare Deployment Setup
@@ -221,10 +231,149 @@ Set production environment variables in Cloudflare Dashboard:
 
 1. Go to Workers & Pages > Your App > Settings > Environment Variables
 2. Add the following variables:
-   - `NEXTAUTH_SECRET`: Generate a secure random string
+   - `JWT_SECRET`: Generate a secure random string (at least 32 characters)
+   - `NEXTAUTH_SECRET`: Generate a secure random string (at least 32 characters)
    - `NEXTAUTH_URL`: Your production domain
+   - `DATABASE_URL`: Your D1 database connection string
    - `D1_DATABASE_ID`: Your D1 database ID
+   - `API_DOCS_USERNAME`: Username for API documentation access (e.g., "admin")
+   - `API_DOCS_PASSWORD`: Secure password for API documentation access
+   - `NODE_ENV`: Set to "production"
    - Other OAuth and SMTP credentials (TD;LR)
+
+## 🔌 Third-Party Integrations
+
+### Cloudflare Services
+
+#### Cloudflare D1 Database
+
+- **Purpose**: Serverless SQLite database for production
+- **Configuration**: Set `D1_DATABASE_ID` in Cloudflare Dashboard
+- **Migration**: Use `wrangler d1 migrations apply` for schema updates
+- **Local Development**: SQLite file (`prisma/dev.db`)
+
+#### Cloudflare Workers
+
+- **Purpose**: Serverless function execution environment
+- **Configuration**: Automatic with OpenNext.js deployment
+- **Runtime**: V8 JavaScript engine with Web APIs
+
+#### Cloudflare Pages
+
+- **Purpose**: Static site hosting with edge functions
+- **Configuration**: Connected to GitHub repository
+- **Custom Domain**: Configure in Cloudflare Dashboard
+- **Environment Variables**: Set in Pages settings
+
+### External Dependencies
+
+#### Prisma ORM
+
+- **Purpose**: Database ORM with type safety
+- **Configuration**: `prisma/schema.prisma`
+- **Client Generation**: `npm run db:generate`
+- **Migrations**: `npm run db:migrate`
+
+#### NextAuth.js
+
+- **Purpose**: Authentication framework
+- **Configuration**: `src/lib/auth-config.ts`
+- **Providers**: JWT tokens (custom implementation)
+- **Session Management**: Server-side sessions
+
+#### OpenNext.js
+
+- **Purpose**: Next.js deployment for Cloudflare
+- **Configuration**: `open-next.config.ts`
+- **Build Process**: `npx opennextjs-cloudflare build`
+- **Deployment**: `npx opennextjs-cloudflare deploy`
+
+#### Scalar API Reference
+
+- **Purpose**: Interactive API documentation
+- **Configuration**: `next.openapi.json`
+- **Generation**: `npx next-openapi-gen generate`
+- **UI**: Modern, interactive API explorer
+
+### Integration Setup
+
+#### Cloudflare Account Setup
+
+1. Create Cloudflare account
+2. Navigate to Workers & Pages
+3. Create new D1 database
+4. Create new Pages project
+5. Connect GitHub repository
+
+#### Environment Configuration
+
+```bash
+# Database
+DATABASE_URL=your-d1-database-connection-string
+D1_DATABASE_ID=your-database-id
+
+# JWT Authentication (REQUIRED)
+JWT_SECRET=your-super-secret-jwt-key-here-at-least-32-characters-long
+
+# NextAuth Configuration
+NEXTAUTH_SECRET=your-secret-key-at-least-32-characters-long
+NEXTAUTH_URL=https://your-domain.com
+
+# API Documentation
+API_DOCS_USERNAME=admin
+API_DOCS_PASSWORD=secure-password
+
+# Environment
+NODE_ENV=production
+
+# Cloudflare API (for deployment)
+CLOUDFLARE_API_TOKEN=your-api-token
+CLOUDFLARE_ACCOUNT_ID=your-account-id
+```
+
+## 🚀 Deployment Configuration
+
+### GitHub Actions Workflow
+
+The deployment process includes OpenAPI documentation generation and production security:
+
+#### Build Process
+
+1. Install dependencies
+2. Generate Prisma client
+3. **Generate OpenAPI documentation** (NEW)
+4. Build OpenNext for Cloudflare
+5. Verify build outputs including OpenAPI docs
+6. Create compressed archive with all files
+
+#### OpenAPI Documentation Generation
+
+```yaml
+- name: Generate OpenAPI documentation
+  run: npx next-openapi-gen generate
+- name: Build OpenNext for Cloudflare
+  run: npx opennextjs-cloudflare build
+```
+
+#### Enhanced Artifact Verification
+
+- Added check for OpenAPI documentation file
+- Updated compressed archive to include all necessary files
+
+### Production Security Features
+
+#### API Documentation Protection
+
+- **Development**: No authentication required
+- **Production**: Basic username/password authentication
+- **Session Management**: Uses `sessionStorage` for temporary authentication
+- **Environment Variables**: Configurable credentials
+
+#### Security Implementation
+
+- `src/components/protected-api-docs.tsx` - Protected API documentation component
+- `src/app/api/verify-api-docs-auth/route.ts` - Authentication endpoint
+- `src/test/api/verify-api-docs-auth.test.ts` - Authentication tests
 
 ## CI/CD with GitHub Actions
 
