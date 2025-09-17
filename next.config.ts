@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  serverExternalPackages: ["@prisma/client"],
+  serverExternalPackages: ["@prisma/client", ".prisma/client"],
 };
 
 // Only initialize OpenNext in development

@@ -39,6 +39,8 @@ jobs:
         run: npm ci
       - name: Generate Prisma client
         run: npm run db:generate
+      - name: Generate OpenAPI documentation
+        run: npx next-openapi-gen generate
       - name: Build OpenNext for Cloudflare
         run: npx opennextjs-cloudflare build
         env:
@@ -51,6 +53,8 @@ jobs:
           ls -la .next/ || echo ".next directory not found"
           echo "Checking for .open-next directory:"
           ls -la .open-next/ || echo ".open-next directory not found"
+          echo "Checking for OpenAPI documentation:"
+          ls -la public/openapi.json || echo "OpenAPI documentation not found"
           echo "Checking for OpenNext config:"
           find . -name "*.config.json" -o -name "open-next.config.*" -o -name ".opennext*" 2>/dev/null || echo "No OpenNext config files found"
           echo "Checking .open-next contents:"
@@ -61,10 +65,12 @@ jobs:
           tar -czf build-artifacts.tar.gz \
             .next \
             .open-next \
+            public \
             package.json \
             package-lock.json \
             wrangler.jsonc \
             open-next.config.ts \
+            next.openapi.json \
             2>/dev/null || echo "Some files may not exist, continuing..."
           echo "Archive created successfully"
           ls -lh build-artifacts.tar.gz
