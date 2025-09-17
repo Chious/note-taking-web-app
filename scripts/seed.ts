@@ -2,33 +2,43 @@
  * Database Seed Script
  *
  * This script populates the database with sample data for development.
+ * Passwords are properly hashed using bcryptjs before storage.
+ *
+ * Test Credentials:
+ * - demo@example.com / password123
+ * - john@example.com / password456
+ *
  * Run with: npm run db:seed
  */
 
 import { PrismaClient } from "@prisma/client";
 import { formatTags } from "../src/types/database";
+import { hashPassword } from "../src/lib/auth";
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log("🌱 Starting database seed...");
 
-  // Create sample users
+  // Create sample users with properly hashed passwords
   const user1 = await prisma.user.create({
     data: {
       email: "demo@example.com",
-      password: "hashedpassword123", // In real app, this would be properly hashed
+      password: await hashPassword("password123"),
     },
   });
 
   const user2 = await prisma.user.create({
     data: {
       email: "john@example.com",
-      password: "hashedpassword456", // In real app, this would be properly hashed
+      password: await hashPassword("password456"),
     },
   });
 
   console.log("✅ Created sample users");
+  console.log("   📧 Test credentials:");
+  console.log("      demo@example.com / password123");
+  console.log("      john@example.com / password456");
 
   // Create sample notes
   const sampleNotes = [
