@@ -46,7 +46,7 @@ export function verifyToken(token: string): { userId: string } | null {
       throw new Error("JWT_SECRET environment variable is not set");
     }
     return verify(token, process.env.JWT_SECRET) as { userId: string };
-  } catch (error) {
+  } catch {
     return null;
   }
 }

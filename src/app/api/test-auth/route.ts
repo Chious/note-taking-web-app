@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { getUserIdFromRequest } from "@/lib/auth";
-import { AuthTestResponseSchema } from "@/schemas/auth";
 
 /**
  * @auth bearer

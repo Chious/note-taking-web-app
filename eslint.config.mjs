@@ -17,8 +17,20 @@ const eslintConfig = [
       ".next/**",
       "out/**",
       "build/**",
+      ".open-next/**",
+      ".wrangler/**",
       "next-env.d.ts",
     ],
+  },
+  {
+    files: ["**/*.test.{ts,tsx}", "src/test/**/*.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+    },
   },
 ];
 
