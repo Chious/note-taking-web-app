@@ -5,7 +5,7 @@ import { vi } from "vitest";
 process.env.JWT_SECRET = "test-jwt-secret-key-for-testing-purposes-only";
 process.env.NEXTAUTH_SECRET = "test-nextauth-secret-key-for-testing";
 process.env.DATABASE_URL = "file:./test.db";
-process.env.NODE_ENV = "test";
+// NODE_ENV is read-only in type-check; tests run under proper env via Vitest config
 
 // Mock Next.js modules that aren't available in test environment
 vi.mock("next/navigation", () => ({

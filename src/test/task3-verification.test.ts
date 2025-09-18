@@ -28,27 +28,35 @@ describe("Task 3: Authentication System Verification", () => {
 
     // Setup default mock responses
     mockPrisma.user.findUnique.mockResolvedValue(null); // No existing user by default
-    mockPrisma.user.create.mockImplementation(({ data, select }) => {
-      const newUser = {
-        id: "new-user-id",
-        email: data.email,
-        password: data.password,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+    mockPrisma.user.create.mockImplementation(
+      ({
+        data,
+        select,
+      }: {
+        data: { email: string; password: string };
+        select?: Record<string, boolean>;
+      }) => {
+        const newUser = {
+          id: "new-user-id",
+          email: data.email,
+          password: data.password,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
 
-      if (select) {
-        const selectedFields: any = {};
-        Object.keys(select).forEach((key) => {
-          if (select[key]) {
-            selectedFields[key] = (newUser as any)[key];
-          }
-        });
-        return Promise.resolve(selectedFields);
+        if (select) {
+          const selectedFields: any = {};
+          Object.keys(select).forEach((key) => {
+            if (select[key]) {
+              selectedFields[key] = (newUser as any)[key];
+            }
+          });
+          return Promise.resolve(selectedFields);
+        }
+
+        return Promise.resolve(newUser);
       }
-
-      return Promise.resolve(newUser);
-    });
+    );
   });
 
   describe("✅ Password Security", () => {

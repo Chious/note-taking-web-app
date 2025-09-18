@@ -1,12 +1,10 @@
 import { LoginForm } from "@/components/auth";
 
-interface HomePageProps {
-  searchParams: {
-    message?: string;
-  };
-}
-
-export default async function HomePage({ searchParams }: HomePageProps) {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ message?: string }>;
+}) {
   const { message } = await searchParams;
 
   return (
