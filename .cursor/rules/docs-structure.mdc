@@ -1,0 +1,88 @@
+# Documentation Structure Rule
+
+## Rule: Minimal Core Documentation Only
+
+### Description
+
+The `/docs` directory must contain only **4 essential files** that cover all project needs. No additional documentation files should be created unless they directly replace one of these core files.
+
+### Required Files (Exactly 4)
+
+1. **`API_DOCUMENTATION.md`** - Centralized API documentation
+
+   - Tech stack overview
+   - Database schemas
+   - API endpoints and specifications
+   - Authentication details
+   - OpenAPI configuration
+   - All API-related information in one place
+
+2. **`ENVIRONMENT_SETUP.md`** - Complete setup guide
+
+   - Local development setup
+   - Production deployment
+   - Environment variables
+   - Prerequisites and requirements
+   - Step-by-step instructions for new developers
+   - **THIRD_PARTY integrations** (Cloudflare D1, Workers, etc.)
+
+3. **`ROUTING_AND_STATE_MANAGEMENT.md`** - Frontend architecture
+
+   - Route structure and navigation
+   - State management patterns
+   - Component organization
+   - Frontend configuration
+
+4. **`THIRD_PARTY.md`** - External dependencies and integrations
+   - Cloudflare services (D1, Workers, Pages)
+   - External libraries and frameworks
+   - API integrations and configurations
+   - Third-party service setup and management
+
+### Prohibited Actions
+
+- ❌ Creating additional `.md` files in `/docs`
+- ❌ Creating subdirectories in `/docs`
+- ❌ Creating documentation files outside `/docs` (except README.md)
+- ❌ Creating separate files for specific features or components
+- ❌ Creating migration logs, security guides, or deployment summaries
+- ❌ Creating documentation indexes or overview files
+
+### Required Actions
+
+- ✅ All API information goes in `API_DOCUMENTATION.md`
+- ✅ All setup information goes in `ENVIRONMENT_SETUP.md`
+- ✅ All frontend architecture goes in `ROUTING_AND_STATE_MANAGEMENT.md`
+- ✅ Update existing files instead of creating new ones
+- ✅ Keep files comprehensive but organized
+- ✅ Use clear sections and navigation within each file
+
+### File Consolidation Strategy
+
+When adding new information:
+
+1. **API-related**: Add to `API_DOCUMENTATION.md`
+   - Endpoints, schemas, authentication, tech stack
+2. **Setup/Deployment**: Add to `ENVIRONMENT_SETUP.md`
+   - Environment setup, deployment process
+   - Prerequisites and requirements
+3. **Frontend/UI**: Add to `ROUTING_AND_STATE_MANAGEMENT.md`
+   - Routes, components, state management patterns
+4. **External Dependencies**: Add to `THIRD_PARTY.md`
+   - Cloudflare services, external libraries
+   - API integrations, third-party configurations
+
+### Examples of What NOT to Create
+
+- `API_DOCS_SECURITY.md` → Merge into `API_DOCUMENTATION.md`
+- `DEPLOYMENT_SUMMARY.md` → Merge into `ENVIRONMENT_SETUP.md`
+- `AUTH_SETUP.md` → Merge into `API_DOCUMENTATION.md`
+- `TESTING.md` → Merge into `ENVIRONMENT_SETUP.md`
+- `README.md` in `/docs` → Not needed, use project root README.md
+
+### Benefits
+
+- **Simplicity**: Developers know exactly where to find information
+- **Maintainability**: Fewer files to keep updated
+- **Completeness**: Each file is comprehensive in its domain
+- **Efficiency**: No time wasted searching multiple files

@@ -144,6 +144,8 @@ graph TB
 
 ```
 note-taking-web-app/
+├── .wrangler/                # Local Cache file for Cloudflare(e.g. D1, R2, etc.)
+├── .open-next/               # Deployment file for Cloudflare Worker
 ├── .taskmaster/              # Task Master configuration
 │   ├── docs/                 # Project documentation
 │   ├── tasks/                # Individual task files
@@ -244,10 +246,10 @@ task-master set-status --id=1 --status=done
 
 ## 📚 Documentation
 
-- [Environment Setup](./docs/ENVIRONMENT_SETUP.md) - Detailed development setup
-- [API Documentation](./docs/API_DOC.md) - Complete API reference
-- [Routing Structure](./docs/ROUTING.md) - Application routes and navigation
-- [Product Requirements](./docs/prd.md) - Complete project specifications
+- [API Documentation](./docs/API_DOCUMENTATION.md) - **Centralized** API reference with tech stack, schemas, and endpoints
+- [Environment Setup](./docs/ENVIRONMENT_SETUP.md) - Complete setup guide for local and production environments
+- [Routing & State Management](./docs/ROUTING_AND_STATE_MANAGEMENT.md) - Frontend architecture and navigation
+- [Third-Party Integrations](./docs/THIRD_PARTY.md) - External dependencies, Cloudflare services, and integrations
 
 ## 🤝 Contributing
 

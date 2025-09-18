@@ -31,7 +31,9 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
-.env*
+.env
+.env.local
+.env.production
 # Cloudflare Workers variables
 .dev.vars 
 
@@ -62,10 +64,10 @@ node_modules/
 *.sw?
 # OS specific
 
-# Task files
-# tasks.json
-# tasks/ 
-
 .wrangler
 
 *.db
+
+# Task files
+# tasks.json
+# tasks/ 
