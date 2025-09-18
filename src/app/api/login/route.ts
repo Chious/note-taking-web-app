@@ -17,6 +17,9 @@ export async function POST(request: Request) {
     // Validate request body
     const { email, password } = LoginRequestSchema.parse(body);
 
+    console.log("email", email);
+    console.log("password", password);
+
     // Find user by email
     const db = getDb();
     const user = await db.user.findUnique({
