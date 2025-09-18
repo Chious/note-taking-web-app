@@ -11,29 +11,47 @@
  * Run with: npm run db:seed
  */
 
-import { PrismaClient } from "@prisma/client";
+import { execFileSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { formatTags } from "../src/types/database";
 import { hashPassword } from "../src/lib/auth";
 
-const prisma = new PrismaClient();
+function run(sql: string) {
+  // Use execFileSync with args array to avoid shell interpolation (which broke $ in bcrypt hashes)
+  execFileSync(
+    "npx",
+    ["wrangler", "d1", "execute", "noteapp", "--local", "--command", sql],
+    { stdio: "inherit", shell: false }
+  );
+}
+
+function escapeSql(value: string): string {
+  return value.replace(/'/g, "''");
+}
 
 async function main() {
   console.log("🌱 Starting database seed...");
 
   // Create sample users with properly hashed passwords
-  const user1 = await prisma.user.create({
-    data: {
-      email: "demo@example.com",
-      password: await hashPassword("password123"),
-    },
-  });
+  const user1Id = randomUUID();
+  const user2Id = randomUUID();
+  const user1Pass = await hashPassword("password123");
+  const user2Pass = await hashPassword("password456");
 
-  const user2 = await prisma.user.create({
-    data: {
-      email: "john@example.com",
-      password: await hashPassword("password456"),
-    },
-  });
+  run(
+    `INSERT INTO User (id, email, password, createdAt, updatedAt) VALUES (` +
+      `'${user1Id}', 'demo@example.com', '${escapeSql(
+        user1Pass
+      )}', datetime('now'), datetime('now')` +
+      `)`
+  );
+  run(
+    `INSERT INTO User (id, email, password, createdAt, updatedAt) VALUES (` +
+      `'${user2Id}', 'john@example.com', '${escapeSql(
+        user2Pass
+      )}', datetime('now'), datetime('now')` +
+      `)`
+  );
 
   console.log("✅ Created sample users");
   console.log("   📧 Test credentials:");
@@ -43,21 +61,21 @@ async function main() {
   // Create sample notes
   const sampleNotes = [
     {
-      userId: user1.id,
+      userId: user1Id,
       title: "Welcome to Notes",
       content:
         "This is your first note! You can edit, delete, and organize your notes here.",
       tags: formatTags(["welcome", "getting-started"]),
     },
     {
-      userId: user1.id,
+      userId: user1Id,
       title: "Project Ideas",
       content:
         "1. Build a todo app\n2. Learn TypeScript\n3. Deploy to Cloudflare\n4. Add authentication",
       tags: formatTags(["projects", "ideas", "development"]),
     },
     {
-      userId: user1.id,
+      userId: user1Id,
       title: "Meeting Notes",
       content:
         "Team meeting on 2024-01-15:\n- Discussed new features\n- Set deployment timeline\n- Assigned tasks",
@@ -65,14 +83,14 @@ async function main() {
       isArchived: true,
     },
     {
-      userId: user2.id,
+      userId: user2Id,
       title: "Recipe Collection",
       content:
         "Favorite recipes to try:\n- Pasta carbonara\n- Chicken tikka masala\n- Chocolate chip cookies",
       tags: formatTags(["recipes", "cooking", "food"]),
     },
     {
-      userId: user2.id,
+      userId: user2Id,
       title: "Travel Plans",
       content:
         "Places to visit:\n- Japan (Tokyo, Kyoto)\n- Iceland (Northern Lights)\n- New Zealand (Hiking)",
@@ -81,29 +99,30 @@ async function main() {
   ];
 
   for (const noteData of sampleNotes) {
-    await prisma.note.create({
-      data: noteData,
-    });
+    const id = randomUUID();
+    const { userId, title, content, tags } = noteData;
+    const archived = (noteData as { isArchived?: boolean }).isArchived ? 1 : 0;
+    run(
+      `INSERT INTO Note (id, userId, title, content, tags, isArchived, createdAt, updatedAt, lastEdited) VALUES (` +
+        `'${id}', '${userId}', '${escapeSql(title)}', '${escapeSql(
+          content
+        )}', '${escapeSql(
+          tags
+        )}', ${archived}, datetime('now'), datetime('now'), datetime('now')` +
+        `)`
+    );
   }
 
   console.log("✅ Created sample notes");
 
-  // Display summary
-  const userCount = await prisma.user.count();
-  const noteCount = await prisma.note.count();
-
-  console.log("\n📊 Seed Summary:");
-  console.log(`   Users created: ${userCount}`);
-  console.log(`   Notes created: ${noteCount}`);
+  // Display summary (printed by Wrangler)
+  console.log("\n📊 Seed Summary (from D1):");
+  run(`SELECT COUNT(*) AS users FROM User;`);
+  run(`SELECT COUNT(*) AS notes FROM Note;`);
   console.log("\n🎉 Database seeding completed successfully!");
 }
 
-main()
-  .then(async () => {
-    await prisma.$disconnect();
-  })
-  .catch(async (e) => {
-    console.error("❌ Seeding failed:", e);
-    await prisma.$disconnect();
-    process.exit(1);
-  });
+main().catch((e) => {
+  console.error("❌ Seeding failed:", e);
+  process.exit(1);
+});
