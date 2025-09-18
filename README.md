@@ -144,6 +144,8 @@ graph TB
 
 ```
 note-taking-web-app/
+├── .wrangler/                # Local Cache file for Cloudflare(e.g. D1, R2, etc.)
+├── .open-next/               # Deployment file for Cloudflare Worker
 ├── .taskmaster/              # Task Master configuration
 │   ├── docs/                 # Project documentation
 │   ├── tasks/                # Individual task files
