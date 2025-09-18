@@ -1,8 +1,9 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
-import { verifyPassword } from "@/lib/auth";
+import { verifyPassword, hashPassword } from "@/lib/auth";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -11,6 +12,10 @@ const loginSchema = z.object({
 
 export const authOptions: NextAuthOptions = {
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
     CredentialsProvider({
       id: "credentials",
       name: "credentials",
@@ -67,10 +72,39 @@ export const authOptions: NextAuthOptions = {
     maxAge: 7 * 24 * 60 * 60, // 7 days
   },
   pages: {
-    signIn: "/login",
-    error: "/login",
+    signIn: "/",
+    error: "/",
   },
   callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider === "google") {
+        try {
+          const db = getDb();
+
+          // Check if user already exists
+          let existingUser = await db.user.findUnique({
+            where: { email: user.email! },
+          });
+
+          if (!existingUser) {
+            // Create new user for Google OAuth
+            existingUser = await db.user.create({
+              data: {
+                email: user.email!,
+                password: await hashPassword("google_oauth_user"), // Dummy password for OAuth users
+              },
+            });
+          }
+
+          // Update user object with database ID
+          user.id = existingUser.id.toString();
+        } catch (error) {
+          console.error("Google OAuth error:", error);
+          return false;
+        }
+      }
+      return true;
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
