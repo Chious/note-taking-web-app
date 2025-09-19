@@ -1,4 +1,4 @@
-CREATE TABLE `Note` (
+CREATE TABLE IF NOT EXISTS `Note` (
 	`id` text PRIMARY KEY NOT NULL,
 	`userId` text NOT NULL,
 	`title` text NOT NULL,
@@ -11,7 +11,7 @@ CREATE TABLE `Note` (
 	FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE TABLE `User` (
+CREATE TABLE IF NOT EXISTS `User` (
 	`id` text PRIMARY KEY NOT NULL,
 	`email` text NOT NULL,
 	`password` text NOT NULL,
@@ -19,4 +19,4 @@ CREATE TABLE `User` (
 	`updatedAt` text NOT NULL
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `User_email_unique` ON `User` (`email`);
+CREATE UNIQUE INDEX IF NOT EXISTS `User_email_unique` ON `User` (`email`);
