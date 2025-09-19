@@ -20,8 +20,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version: '20'
+          cache: 'npm'
 
       - name: Generate cache key
         id: cache-key
@@ -51,7 +51,7 @@ jobs:
           restore-keys: |
             prisma-${{ runner.os }}-
 
-      - name: Generate Prisma client
+      - name: Generate Drizzle client
         run: npm run db:generate
 
       - name: Lint
@@ -96,19 +96,28 @@ jobs:
         env:
           NODE_ENV: production
 
+      - name: Create build artifact archive
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "Creating build artifact archive..."
+          tar -czf build-artifacts.tar.gz \
+            .next \
+            .open-next \
+            public \
+            package.json \
+            package-lock.json \
+            wrangler.jsonc \
+            open-next.config.ts \
+            next.openapi.json \
+            || echo "Some files may not exist, continuing..."
+          echo "Archive created successfully"
+          ls -lh build-artifacts.tar.gz
+
       - name: Upload build artifacts
         if: github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts-${{ github.sha }}
-          path: |
-            .next
-            .open-next
-            public
-            package.json
-            package-lock.json
-            wrangler.jsonc
-            open-next.config.ts
-            next.openapi.json
+          path: build-artifacts.tar.gz
           retention-days: 1
           if-no-files-found: error

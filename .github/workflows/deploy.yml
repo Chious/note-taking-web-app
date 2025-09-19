@@ -2,7 +2,7 @@ name: Deploy to Cloudflare
 
 on:
   workflow_run:
-    workflows: ["CI"]
+    workflows: ['CI']
     types: [completed]
     branches: [main]
   workflow_dispatch:
@@ -20,8 +20,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version: '20'
+          cache: 'npm'
 
       # For manual dispatch, we need to run the full build process
       - name: Full build process (manual dispatch only)
@@ -37,69 +37,33 @@ jobs:
         env:
           NODE_ENV: production
 
-      # For workflow_run trigger, download artifacts from CI
+      # For workflow_run trigger, download and extract artifacts from CI
       - name: Download build artifacts
         if: github.event_name == 'workflow_run'
         uses: actions/download-artifact@v4
         with:
-          name: build-artifacts-${{ github.event.workflow_run.head_sha }}
+          name: build-artifacts-${{ github.sha }}
           path: .
           github-token: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{ github.repository }}
           run-id: ${{ github.event.workflow_run.id }}
 
-      - name: Verify build artifacts
-        id: verify-artifacts
+      - name: Extract build artifacts
         if: github.event_name == 'workflow_run'
         run: |
-          echo "Verifying build artifacts..."
+          echo "Extracting build artifacts..."
+          ls -la
+          tar -xzf build-artifacts.tar.gz
+          echo "Verifying extracted files:"
           ls -la
           echo "Checking .open-next directory:"
-          if [ -d ".open-next" ]; then
-            echo "✅ .open-next directory found"
-            ls -la .open-next/
-            echo "artifact-ok=true" >> $GITHUB_OUTPUT
-          else
-            echo "❌ .open-next directory not found"
-            echo "artifact-ok=false" >> $GITHUB_OUTPUT
-          fi
-          echo "Checking for open-next.config.ts:"
-          if [ -f "open-next.config.ts" ]; then
-            echo "✅ open-next.config.ts found"
-          else
-            echo "❌ open-next.config.ts not found"
-          fi
+          ls -la .open-next/ || echo ".open-next directory not found"
+          echo "Checking .open-next/worker.js:"
+          ls -la .open-next/worker.js || echo "worker.js not found"
 
-      # Fallback: If artifacts are missing or incomplete, run build
-      - name: Fallback build process
-        if: github.event_name == 'workflow_run' && steps.verify-artifacts.outputs.artifact-ok == 'false'
-        run: |
-          echo "Running fallback build process..."
-          npm ci
-          npm run db:generate
-          npx next-openapi-gen generate
-          npx opennextjs-cloudflare build
-        env:
-          NODE_ENV: production
-
-      - name: Install dependencies for deployment tools
+      - name: Install dependencies for deployment
         if: github.event_name == 'workflow_run'
-        run: |
-          # Only install dependencies needed for deployment
-          npm ci --production=false
-          npm run db:generate
-
-      - name: Final verification before deployment
-        run: |
-          echo "Final verification before deployment..."
-          echo "Checking .open-next directory:"
-          ls -la .open-next/ || echo "❌ .open-next directory not found"
-          echo "Checking open-next.config.ts:"
-          ls -la open-next.config.ts || echo "❌ open-next.config.ts not found"
-          echo "Checking wrangler.jsonc:"
-          ls -la wrangler.jsonc || echo "❌ wrangler.jsonc not found"
-          echo "Checking package.json:"
-          ls -la package.json || echo "❌ package.json not found"
+        run: npm ci --production=false
 
       - name: Apply database migrations
         run: npm run db:migrate:deploy
