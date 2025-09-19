@@ -1,137 +1,76 @@
 name: Deploy to Cloudflare
+
 on:
-  push:
+  workflow_run:
+    workflows: ['CI']
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
 jobs:
-  lint-and-test:
-    name: Lint and Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-      - name: Install dependencies
-        run: npm ci
-      - name: Lint code
-        run: npm run lint
-      - name: Type check
-        run: npm run type-check
-      - name: Run tests
-        run: npm run test
-
-  build:
-    name: Build Application
-    runs-on: ubuntu-latest
-    needs: lint-and-test
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-      - name: Install dependencies
-        run: npm ci
-      - name: Generate Prisma client
-        run: npm run db:generate
-      - name: Generate OpenAPI documentation
-        run: npx next-openapi-gen generate
-      - name: Build OpenNext for Cloudflare
-        run: npx opennextjs-cloudflare build
-        env:
-          NODE_ENV: production
-      - name: Verify build outputs
-        run: |
-          echo "Listing current directory:"
-          ls -la
-          echo "Checking for .next directory:"
-          ls -la .next/ || echo ".next directory not found"
-          echo "Checking for .open-next directory:"
-          ls -la .open-next/ || echo ".open-next directory not found"
-          echo "Checking for OpenAPI documentation:"
-          ls -la public/openapi.json || echo "OpenAPI documentation not found"
-          echo "Checking for OpenNext config:"
-          find . -name "*.config.json" -o -name "open-next.config.*" -o -name ".opennext*" 2>/dev/null || echo "No OpenNext config files found"
-          echo "Checking .open-next contents:"
-          find .open-next -type f 2>/dev/null | head -20 || echo "No .open-next files found"
-      - name: Create compressed build archive
-        run: |
-          echo "Creating compressed archive with all build files..."
-          tar -czf build-artifacts.tar.gz \
-            .next \
-            .open-next \
-            public \
-            package.json \
-            package-lock.json \
-            wrangler.jsonc \
-            open-next.config.ts \
-            next.openapi.json \
-            2>/dev/null || echo "Some files may not exist, continuing..."
-          echo "Archive created successfully"
-          ls -lh build-artifacts.tar.gz
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-files
-          path: build-artifacts.tar.gz
-          retention-days: 1
-          if-no-files-found: error
-
   deploy:
     name: Deploy to Cloudflare
     runs-on: ubuntu-latest
-    needs: build
-    if: github.ref == 'refs/heads/main'
+    # Only run if CI workflow succeeded or if manually triggered
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
-      - name: Install dependencies
-        run: npm ci
+          node-version: '20'
+          cache: 'npm'
+
+      # For manual dispatch, we need to run the full build process
+      - name: Full build process (manual dispatch only)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          npm ci
+          npm run db:generate
+          npm run lint
+          npm run type-check
+          npm run test
+          npx next-openapi-gen generate
+          npx opennextjs-cloudflare build
+        env:
+          NODE_ENV: production
+
+      # For workflow_run trigger, download artifacts from CI
       - name: Download build artifacts
+        if: github.event_name == 'workflow_run'
         uses: actions/download-artifact@v4
         with:
-          name: build-files
+          name: build-artifacts-${{ github.sha }}
           path: .
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.event.workflow_run.id }}
 
-      - name: Extract build artifacts
+      - name: Verify build artifacts
+        if: github.event_name == 'workflow_run'
         run: |
-          echo "Extracting build artifacts..."
-          ls -lh build-artifacts.tar.gz
-          tar -xzf build-artifacts.tar.gz
-          rm build-artifacts.tar.gz
-          echo "Extraction completed"
-
-      - name: Verify extracted artifacts
-        run: |
-          echo "Verifying extracted files:"
+          echo "Verifying build artifacts..."
           ls -la
           echo "Checking .open-next directory:"
           ls -la .open-next/ || echo ".open-next directory not found"
           echo "Checking .open-next/worker.js:"
           ls -la .open-next/worker.js || echo "worker.js not found"
 
-      - name: Rebuild OpenNext if missing
+      - name: Install dependencies for deployment tools
+        if: github.event_name == 'workflow_run'
         run: |
-          if [ ! -d ".open-next" ] || [ ! -f ".open-next/worker.js" ]; then
-            echo "🔧 .open-next missing, rebuilding OpenNext..."
-            npx opennextjs-cloudflare build
-            echo "✅ OpenNext rebuild completed"
-            ls -la .open-next/ || echo "Still no .open-next after rebuild"
-          else
-            echo "✅ .open-next directory found"
-          fi
+          # Only install dependencies needed for deployment
+          npm ci --production=false
+          npm run db:generate
+
       - name: Apply database migrations
         run: npm run db:migrate:deploy
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
       - name: Deploy to Cloudflare
         run: npx opennextjs-cloudflare deploy
         env:

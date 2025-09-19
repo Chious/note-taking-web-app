@@ -1,6 +1,4 @@
 import { NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
 
 /**
  * @response 200:object:OpenAPI specification
@@ -8,9 +6,13 @@ import path from "path";
  */
 export async function GET() {
   try {
-    // Read the generated OpenAPI spec from public directory
-    const openApiPath = path.join(process.cwd(), "public", "openapi.json");
-    const openApiSpec = JSON.parse(fs.readFileSync(openApiPath, "utf8"));
+    // Fetch the generated OpenAPI spec from the public directory
+    // In Next.js, files in /public are served at the root ("/openapi.json")
+    const res = await fetch("/openapi.json");
+    if (!res.ok) {
+      throw new Error(`Failed to load OpenAPI spec: ${res.status}`);
+    }
+    const openApiSpec = await res.json();
     return NextResponse.json(openApiSpec);
   } catch (error) {
     console.error("Error reading OpenAPI spec:", error);

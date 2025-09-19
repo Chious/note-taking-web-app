@@ -1,7 +1,7 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { cache } from "react";
-import { PrismaClient } from "@prisma/client";
-import { PrismaD1 } from "@prisma/adapter-d1";
+import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { cache } from 'react';
+import { PrismaClient } from '@prisma/client';
+import { PrismaD1 } from '@prisma/adapter-d1';
 
 // Extend the CloudflareEnv interface to include our D1 binding
 declare global {

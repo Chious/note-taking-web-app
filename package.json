@@ -21,7 +21,7 @@
     "deploy:preview": "npm run build:openext && opennextjs-cloudflare preview",
     "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
-    "db:generate": "prisma generate",
+    "db:generate": "prisma generate --no-engine",
     "db:migrate": "wrangler d1 migrations apply noteapp --local",
     "db:migrate:deploy": "wrangler d1 migrations apply noteapp --remote",
     "db:migrate:local": "wrangler d1 migrations apply noteapp",
@@ -30,7 +30,7 @@
     "db:reset": "rm -rf .wrangler/state/v3/d1 && wrangler d1 migrations apply noteapp --local",
     "db:status": "./scripts/migrate-d1.sh list",
     "db:tables": "./scripts/migrate-d1.sh tables",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate --no-engine"
   },
   "dependencies": {
     "@editorjs/delimiter": "^1.4.2",
