@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 // Mock the database before importing anything else
-import { mockGetDb } from "@/test/lib/db.mock";
+import { mockGetDb, mockUsers } from "@/test/lib/db.mock";
 
 vi.mock("@/lib/db", () => ({
   getDb: mockGetDb,
@@ -18,45 +18,16 @@ import {
 } from "@/lib/auth";
 
 describe("Task 3: Authentication System Verification", () => {
-  let mockPrisma: any;
+  let mockDb: any;
 
   beforeEach(async () => {
     vi.clearAllMocks();
     process.env.JWT_SECRET = "test-jwt-secret-key-for-testing-purposes-only";
 
-    mockPrisma = mockGetDb();
+    mockDb = mockGetDb();
 
-    // Setup default mock responses
-    mockPrisma.user.findUnique.mockResolvedValue(null); // No existing user by default
-    mockPrisma.user.create.mockImplementation(
-      ({
-        data,
-        select,
-      }: {
-        data: { email: string; password: string };
-        select?: Record<string, boolean>;
-      }) => {
-        const newUser = {
-          id: "new-user-id",
-          email: data.email,
-          password: data.password,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-
-        if (select) {
-          const selectedFields: any = {};
-          Object.keys(select).forEach((key) => {
-            if (select[key]) {
-              selectedFields[key] = (newUser as any)[key];
-            }
-          });
-          return Promise.resolve(selectedFields);
-        }
-
-        return Promise.resolve(newUser);
-      }
-    );
+    // Clear mockUsers array for each test
+    mockUsers.length = 0;
   });
 
   describe("✅ Password Security", () => {
@@ -141,10 +112,13 @@ describe("Task 3: Authentication System Verification", () => {
     });
 
     it("should reject duplicate email registration", async () => {
-      // Mock existing user
-      mockPrisma.user.findUnique.mockResolvedValueOnce({
+      // Add existing user to mockUsers array for Drizzle mock
+      mockUsers.push({
         id: "existing-user",
         email: "existing@example.com",
+        password: "hashed-password",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       });
 
       const requestBody = {
@@ -196,11 +170,13 @@ describe("Task 3: Authentication System Verification", () => {
       const password = "password123";
       const hashedPassword = await hashPassword(password);
 
-      mockPrisma.user.findUnique.mockResolvedValueOnce({
+      // Add user to mockUsers array for Drizzle mock
+      mockUsers.push({
         id: "test-user-id",
         email: "test@example.com",
         password: hashedPassword,
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       });
 
       const requestBody = {
@@ -230,8 +206,8 @@ describe("Task 3: Authentication System Verification", () => {
     });
 
     it("should reject login with incorrect credentials", async () => {
-      // Mock no user found
-      mockPrisma.user.findUnique.mockResolvedValueOnce(null);
+      // Mock no user found - don't add any user to mockUsers array
+      // The Drizzle mock will return undefined for nonexistent email
 
       const requestBody = {
         email: "nonexistent@example.com",
@@ -327,7 +303,7 @@ describe("Task 3: Authentication System Verification", () => {
 
       // Step 2: Login with the registered user
       const hashedPassword = await hashPassword(userCredentials.password);
-      mockPrisma.user.findUnique.mockResolvedValueOnce({
+      mockDb.user.findUnique.mockResolvedValueOnce({
         id: registerData.user.id,
         email: userCredentials.email,
         password: hashedPassword,
@@ -368,9 +344,11 @@ describe("Task 3: Authentication System Verification", () => {
       // This test verifies that the database configuration module loads without errors
       // The actual adapter selection is tested in the db.test.ts file
       const { getDb } = await import("@/lib/db");
-      const prisma = getDb();
-      expect(prisma).toBeDefined();
-      expect(typeof prisma.user.findUnique).toBe("function");
+      const db = getDb();
+      expect(db).toBeDefined();
+      // Verify that the database has the expected tables from the schema
+      expect(db).toHaveProperty("users");
+      expect(db).toHaveProperty("notes");
     });
   });
 });
