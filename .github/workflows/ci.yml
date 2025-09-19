@@ -20,8 +20,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
 
       - name: Generate cache key
         id: cache-key
@@ -107,7 +107,7 @@ jobs:
             public
             package.json
             package-lock.json
-            wrangler.json
+            wrangler.jsonc
             open-next.config.ts
             next.openapi.json
           retention-days: 1

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { users, notes } from "@/lib/schema";
+import { count } from "drizzle-orm";
 
 /**
  * @response HealthResponseSchema:Service healthy
@@ -10,8 +12,11 @@ export async function GET() {
   try {
     const db = getDb();
 
-    const userCount = await db.user.count();
-    const noteCount = await db.note.count();
+    const [userCountResult] = await db.select({ count: count() }).from(users);
+    const [noteCountResult] = await db.select({ count: count() }).from(notes);
+    
+    const userCount = userCountResult.count;
+    const noteCount = noteCountResult.count;
 
     return NextResponse.json({
       status: "ok",

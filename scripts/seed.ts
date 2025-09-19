@@ -12,7 +12,7 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { createId } from "@paralleldrive/cuid2";
 import { formatTags } from "../src/types/database";
 import { hashPassword } from "../src/lib/auth";
 
@@ -33,23 +33,25 @@ async function main() {
   console.log("🌱 Starting database seed...");
 
   // Create sample users with properly hashed passwords
-  const user1Id = randomUUID();
-  const user2Id = randomUUID();
+  const user1Id = createId();
+  const user2Id = createId();
   const user1Pass = await hashPassword("password123");
   const user2Pass = await hashPassword("password456");
 
+  const now = new Date().toISOString();
+  
   run(
     `INSERT INTO User (id, email, password, createdAt, updatedAt) VALUES (` +
       `'${user1Id}', 'demo@example.com', '${escapeSql(
         user1Pass
-      )}', datetime('now'), datetime('now')` +
+      )}', '${now}', '${now}'` +
       `)`
   );
   run(
     `INSERT INTO User (id, email, password, createdAt, updatedAt) VALUES (` +
       `'${user2Id}', 'john@example.com', '${escapeSql(
         user2Pass
-      )}', datetime('now'), datetime('now')` +
+      )}', '${now}', '${now}'` +
       `)`
   );
 
@@ -99,16 +101,17 @@ async function main() {
   ];
 
   for (const noteData of sampleNotes) {
-    const id = randomUUID();
+    const id = createId();
     const { userId, title, content, tags } = noteData;
     const archived = (noteData as { isArchived?: boolean }).isArchived ? 1 : 0;
+    const noteTime = new Date().toISOString();
     run(
       `INSERT INTO Note (id, userId, title, content, tags, isArchived, createdAt, updatedAt, lastEdited) VALUES (` +
         `'${id}', '${userId}', '${escapeSql(title)}', '${escapeSql(
           content
         )}', '${escapeSql(
           tags
-        )}', ${archived}, datetime('now'), datetime('now'), datetime('now')` +
+        )}', ${archived}, '${noteTime}', '${noteTime}', '${noteTime}'` +
         `)`
     );
   }

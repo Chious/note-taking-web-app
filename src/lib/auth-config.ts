@@ -4,6 +4,8 @@ import GoogleProvider from "next-auth/providers/google";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
 import { verifyPassword, hashPassword } from "@/lib/auth";
+import { users } from "@/lib/schema";
+import { eq } from "drizzle-orm";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -32,15 +34,16 @@ export const authOptions: NextAuthOptions = {
           const { email, password } = loginSchema.parse(credentials);
 
           const db = getDb();
-          const user = await db.user.findUnique({
-            where: { email },
-            select: {
-              id: true,
-              email: true,
-              password: true,
-              createdAt: true,
-            },
-          });
+          const [user] = await db
+            .select({
+              id: users.id,
+              email: users.email,
+              password: users.password,
+              createdAt: users.createdAt,
+            })
+            .from(users)
+            .where(eq(users.email, email))
+            .limit(1);
 
           if (!user) {
             throw new Error("No user found with this email");
@@ -55,7 +58,7 @@ export const authOptions: NextAuthOptions = {
           return {
             id: user.id,
             email: user.email,
-            createdAt: user.createdAt.toISOString(),
+            createdAt: user.createdAt,
           };
         } catch (error) {
           console.error("Auth error:", error);
@@ -82,18 +85,22 @@ export const authOptions: NextAuthOptions = {
           const db = getDb();
 
           // Check if user already exists
-          let existingUser = await db.user.findUnique({
-            where: { email: user.email! },
-          });
+          let [existingUser] = await db
+            .select()
+            .from(users)
+            .where(eq(users.email, user.email!))
+            .limit(1);
 
           if (!existingUser) {
             // Create new user for Google OAuth
-            existingUser = await db.user.create({
-              data: {
+            const [newUser] = await db
+              .insert(users)
+              .values({
                 email: user.email!,
                 password: await hashPassword("google_oauth_user"), // Dummy password for OAuth users
-              },
-            });
+              })
+              .returning();
+            existingUser = newUser;
           }
 
           // Update user object with database ID

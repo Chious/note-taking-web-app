@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
 import { RegisterRequestSchema } from "@/schemas/auth";
+import { users } from "@/lib/schema";
+import { eq } from "drizzle-orm";
 import z from "zod";
 
 /**
@@ -20,9 +22,11 @@ export async function POST(request: Request) {
 
     // Check if user already exists
     const db = getDb();
-    const existingUser = await db.user.findUnique({
-      where: { email },
-    });
+    const [existingUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
 
     if (existingUser) {
       return NextResponse.json(
@@ -33,17 +37,17 @@ export async function POST(request: Request) {
 
     // Hash password and create user
     const hashedPassword = await hashPassword(password);
-    const user = await db.user.create({
-      data: {
+    const [user] = await db
+      .insert(users)
+      .values({
         email,
         password: hashedPassword,
-      },
-      select: {
-        id: true,
-        email: true,
-        createdAt: true,
-      },
-    });
+      })
+      .returning({
+        id: users.id,
+        email: users.email,
+        createdAt: users.createdAt,
+      });
 
     return NextResponse.json(
       {

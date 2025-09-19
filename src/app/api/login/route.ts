@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { verifyPassword, generateToken } from "@/lib/auth";
 import { LoginRequestSchema } from "@/schemas/auth";
+import { users } from "@/lib/schema";
+import { eq } from "drizzle-orm";
 import z from "zod";
 
 /**
@@ -22,15 +24,16 @@ export async function POST(request: Request) {
 
     // Find user by email
     const db = getDb();
-    const user = await db.user.findUnique({
-      where: { email },
-      select: {
-        id: true,
-        email: true,
-        password: true,
-        createdAt: true,
-      },
-    });
+    const [user] = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        password: users.password,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
 
     if (!user) {
       return NextResponse.json(

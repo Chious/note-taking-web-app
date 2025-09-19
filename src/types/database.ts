@@ -1,4 +1,4 @@
-import { User, Note } from "@prisma/client";
+import type { User, Note } from "@/lib/schema";
 
 export type UserWithNotes = User & {
   notes: Note[];
