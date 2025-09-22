@@ -13,8 +13,8 @@
 
 import { execFileSync } from "node:child_process";
 import { createId } from "@paralleldrive/cuid2";
-import { formatTags } from "../src/types/database";
 import { hashPassword } from "../src/lib/auth";
+import { stringifyEditorContent } from "../src/lib/editor-utils";
 
 function run(sql: string) {
   // Use execFileSync with args array to avoid shell interpolation (which broke $ in bcrypt hashes)
@@ -60,68 +60,198 @@ async function main() {
   console.log("      demo@example.com / password123");
   console.log("      john@example.com / password456");
 
-  // Create sample notes
+  // Create sample notes with Editor.js content format
   const sampleNotes = [
     {
       userId: user1Id,
       title: "Welcome to Notes",
-      content:
-        "This is your first note! You can edit, delete, and organize your notes here.",
-      tags: formatTags(["welcome", "getting-started"]),
+      content: stringifyEditorContent({
+        time: Date.now(),
+        blocks: [
+          {
+            id: "welcome1",
+            type: "header",
+            data: { text: "Welcome to Notes", level: 1 }
+          },
+          {
+            id: "welcome2",
+            type: "paragraph",
+            data: { text: "This is your first note! You can edit, delete, and organize your notes here." }
+          }
+        ],
+        version: "2.31.0"
+      }),
+      tags: ["welcome", "getting-started"],
     },
     {
       userId: user1Id,
       title: "Project Ideas",
-      content:
-        "1. Build a todo app\n2. Learn TypeScript\n3. Deploy to Cloudflare\n4. Add authentication",
-      tags: formatTags(["projects", "ideas", "development"]),
+      content: stringifyEditorContent({
+        time: Date.now(),
+        blocks: [
+          {
+            id: "project1",
+            type: "header",
+            data: { text: "Project Ideas", level: 2 }
+          },
+          {
+            id: "project2",
+            type: "list",
+            data: {
+              style: "ordered",
+              items: [
+                "Build a todo app",
+                "Learn TypeScript", 
+                "Deploy to Cloudflare",
+                "Add authentication"
+              ]
+            }
+          }
+        ],
+        version: "2.31.0"
+      }),
+      tags: ["projects", "ideas", "development"],
     },
     {
       userId: user1Id,
       title: "Meeting Notes",
-      content:
-        "Team meeting on 2024-01-15:\n- Discussed new features\n- Set deployment timeline\n- Assigned tasks",
-      tags: formatTags(["meetings", "work"]),
+      content: stringifyEditorContent({
+        time: Date.now(),
+        blocks: [
+          {
+            id: "meeting1",
+            type: "header",
+            data: { text: "Team Meeting - 2024-01-15", level: 2 }
+          },
+          {
+            id: "meeting2",
+            type: "list",
+            data: {
+              style: "unordered",
+              items: [
+                "Discussed new features",
+                "Set deployment timeline",
+                "Assigned tasks"
+              ]
+            }
+          }
+        ],
+        version: "2.31.0"
+      }),
+      tags: ["meetings", "work"],
       isArchived: true,
     },
     {
       userId: user2Id,
       title: "Recipe Collection",
-      content:
-        "Favorite recipes to try:\n- Pasta carbonara\n- Chicken tikka masala\n- Chocolate chip cookies",
-      tags: formatTags(["recipes", "cooking", "food"]),
+      content: stringifyEditorContent({
+        time: Date.now(),
+        blocks: [
+          {
+            id: "recipe1",
+            type: "header",
+            data: { text: "Favorite Recipes to Try", level: 2 }
+          },
+          {
+            id: "recipe2",
+            type: "list",
+            data: {
+              style: "unordered",
+              items: [
+                "Pasta carbonara",
+                "Chicken tikka masala",
+                "Chocolate chip cookies"
+              ]
+            }
+          }
+        ],
+        version: "2.31.0"
+      }),
+      tags: ["recipes", "cooking", "food"],
     },
     {
       userId: user2Id,
       title: "Travel Plans",
-      content:
-        "Places to visit:\n- Japan (Tokyo, Kyoto)\n- Iceland (Northern Lights)\n- New Zealand (Hiking)",
-      tags: formatTags(["travel", "vacation", "bucket-list"]),
+      content: stringifyEditorContent({
+        time: Date.now(),
+        blocks: [
+          {
+            id: "travel1",
+            type: "header",
+            data: { text: "Places to Visit", level: 2 }
+          },
+          {
+            id: "travel2",
+            type: "list",
+            data: {
+              style: "unordered",
+              items: [
+                "Japan (Tokyo, Kyoto)",
+                "Iceland (Northern Lights)",
+                "New Zealand (Hiking)"
+              ]
+            }
+          }
+        ],
+        version: "2.31.0"
+      }),
+      tags: ["travel", "vacation", "bucket-list"],
     },
   ];
 
+  // Create a map to store tag IDs to avoid duplicates
+  const tagMap = new Map<string, string>();
+
+  // Helper function to get or create a tag
+  function getOrCreateTag(tagName: string, userId: string): string {
+    const key = `${userId}:${tagName}`;
+    if (tagMap.has(key)) {
+      return tagMap.get(key)!;
+    }
+    
+    const tagId = createId();
+    const now = new Date().toISOString();
+    run(
+      `INSERT INTO Tag (id, name, userId, createdAt, updatedAt) VALUES (` +
+        `'${tagId}', '${escapeSql(tagName)}', '${userId}', '${now}', '${now}'` +
+        `)`
+    );
+    tagMap.set(key, tagId);
+    return tagId;
+  }
+
   for (const noteData of sampleNotes) {
-    const id = createId();
+    const noteId = createId();
     const { userId, title, content, tags } = noteData;
     const archived = (noteData as { isArchived?: boolean }).isArchived ? 1 : 0;
     const noteTime = new Date().toISOString();
+    
+    // Insert the note (without tags column)
     run(
-      `INSERT INTO Note (id, userId, title, content, tags, isArchived, createdAt, updatedAt, lastEdited) VALUES (` +
-        `'${id}', '${userId}', '${escapeSql(title)}', '${escapeSql(
+      `INSERT INTO Note (id, userId, title, content, isArchived, createdAt, updatedAt, lastEdited) VALUES (` +
+        `'${noteId}', '${userId}', '${escapeSql(title)}', '${escapeSql(
           content
-        )}', '${escapeSql(
-          tags
         )}', ${archived}, '${noteTime}', '${noteTime}', '${noteTime}'` +
         `)`
     );
+
+    // Create tags and note-tag relationships
+    for (const tagName of tags) {
+      const tagId = getOrCreateTag(tagName, userId);
+      run(
+        `INSERT INTO NoteTag (noteId, tagId) VALUES ('${noteId}', '${tagId}')`
+      );
+    }
   }
 
-  console.log("✅ Created sample notes");
+  console.log("✅ Created sample notes with tags");
 
   // Display summary (printed by Wrangler)
   console.log("\n📊 Seed Summary (from D1):");
   run(`SELECT COUNT(*) AS users FROM User;`);
   run(`SELECT COUNT(*) AS notes FROM Note;`);
+  run(`SELECT COUNT(*) AS tags FROM Tag;`);
+  run(`SELECT COUNT(*) AS note_tag_relations FROM NoteTag;`);
   console.log("\n🎉 Database seeding completed successfully!");
 }
 
