@@ -119,7 +119,7 @@
           2,
           3
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {
@@ -269,11 +269,41 @@
         ],
         "status": "in-progress",
         "subtasks": []
+      },
+      {
+        "id": 16,
+        "title": "Implement Client-Side Fetching and Caching for Notes and Tags",
+        "description": "Integrate a client-side data fetching library (React Query or SWR) to fetch, cache, and manage notes and tags from existing APIs, with cache keys scoped per user/session. Implement cache invalidation, background revalidation, prefetching, and minimal instrumentation.",
+        "details": "1. Choose and install a data fetching library (React Query or SWR) suitable for complex CRUD operations and caching (React Query is recommended for advanced cache control and mutation support).\n2. Create reusable hooks (e.g., useNotes, useTags) that fetch notes and tags from the existing API endpoints, using cache keys that include user/session identifiers to ensure data isolation.\n3. Implement cache invalidation logic for create, update, and delete actions by using mutation hooks and invalidating or revalidating relevant queries after mutations.\n4. Enable background revalidation (stale-while-revalidate) so cached data is shown immediately while fresh data is fetched in the background.\n5. Add prefetching logic for common navigation paths (e.g., prefetch note detail data when hovering or focusing on a note in the list) to improve perceived performance.\n6. Integrate these hooks into the dashboard and sidebar components, ensuring that loading and skeleton states are preserved during fetches and revalidations.\n7. Implement error handling and retry logic for failed requests, leveraging the library's built-in mechanisms.\n8. Add minimal instrumentation (e.g., console logging or a custom logger) to track cache hits and misses for notes and tags queries.\n9. Write unit tests for the custom hooks and utilities, mocking API responses and verifying correct cache behavior, invalidation, and error handling.",
+        "testStrategy": "1. Verify that notes and tags are fetched and displayed correctly in the dashboard and sidebar for different users/sessions.\n2. Test that cache is used for repeated queries and that background revalidation updates the UI without flicker.\n3. Confirm that creating, updating, or deleting a note or tag triggers cache invalidation and the UI reflects the latest data.\n4. Check that prefetching works by navigating to note detail views and observing reduced loading times.\n5. Ensure loading/skeleton states are shown during fetches and revalidations, and error states are displayed on failures.\n6. Simulate network errors to verify retry logic and error handling.\n7. Review logs to confirm cache hits and misses are instrumented.\n8. Run unit tests for hooks/utilities to ensure correct fetching, caching, invalidation, and error handling behavior.",
+        "status": "pending",
+        "dependencies": [
+          5,
+          7,
+          10
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 17,
+        "title": "Implement Client-Side Caching and Optimistic Updates for Notes and Tags Data",
+        "description": "Set up React Query for robust client-side caching, fetching, and mutation of notes and tags data, including cache invalidation and optimistic UI updates.",
+        "details": "1. Install React Query (TanStack Query) and its Devtools for development (`npm install @tanstack/react-query @tanstack/react-query-devtools`).\n2. Configure the React Query provider at the root of the application (e.g., in `app/layout.tsx` or `_app.tsx`).\n3. Implement reusable hooks such as `useNotes`, `useTags`, `useCreateNote`, `useUpdateNote`, `useDeleteNote`, and their tag equivalents. Each hook should use React Query's `useQuery` or `useMutation` with cache keys scoped by user/session to ensure data isolation.\n4. Ensure queries for notes and tags use stable cache keys (e.g., `['notes', userId]`, `['tags', userId]`).\n5. For mutations (create, update, delete), implement cache invalidation using `queryClient.invalidateQueries` to refresh relevant data after successful mutations.\n6. Add optimistic update logic in mutation hooks: update the cache immediately before the server response, and roll back if the mutation fails.\n7. Enable background revalidation and prefetching for improved UX (e.g., prefetch notes when navigating to the dashboard).\n8. Document the hooks and caching strategy for maintainability.\n9. Ensure all API calls use the existing endpoints and handle authentication/session as required.\n10. Optionally, add minimal instrumentation (e.g., logging cache hits/misses in development) to aid debugging.",
+        "testStrategy": "1. Verify that notes and tags are fetched and displayed correctly in all relevant UI components for different users/sessions.\n2. Confirm that repeated queries use cached data and that background revalidation updates the UI without flicker.\n3. Test that creating, updating, or deleting a note or tag triggers appropriate cache invalidation and UI refresh.\n4. Validate optimistic updates: ensure UI reflects changes immediately on mutation, and rolls back if the server returns an error.\n5. Simulate network latency and failures to ensure cache and optimistic update logic behave correctly.\n6. Use React Query Devtools to inspect cache state and query/mutation flows during development.\n7. Review documentation and code comments for clarity and completeness.",
+        "status": "pending",
+        "dependencies": [
+          5,
+          7,
+          10
+        ],
+        "priority": "high",
+        "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-09-08T06:11:37.891Z",
-      "updated": "2025-09-18T09:25:16.762Z",
+      "updated": "2025-09-22T07:33:01.783Z",
       "description": "Tasks for master context"
     }
   }
