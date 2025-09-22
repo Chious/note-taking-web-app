@@ -23,10 +23,10 @@ export const createMockDrizzle = () => {
   const users = mockUsers;
 
   return {
-    select: vi.fn((fields: any) => ({
-      from: vi.fn((table: any) => ({
+    select: vi.fn((_fields: any) => ({
+      from: vi.fn((_table: any) => ({
         where: vi.fn((condition: any) => ({
-          limit: vi.fn((count: number) => {
+          limit: vi.fn((_count: number) => {
             // Find user by email - this is what the actual API routes use
             console.log("Mock Drizzle query - condition:", condition);
             // Handle Drizzle eq() condition - extract email from SQL object
@@ -62,9 +62,9 @@ export const createMockDrizzle = () => {
         })),
       })),
     })),
-    insert: vi.fn((table: any) => ({
+    insert: vi.fn((_table: any) => ({
       values: vi.fn((data: any) => ({
-        returning: vi.fn((fields: any) => {
+        returning: vi.fn((_fields: any) => {
           const newUser = {
             id: `user-${users.length + 1}`,
             email: data.email,

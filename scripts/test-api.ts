@@ -174,7 +174,11 @@ async function testGetTags() {
   
   if (data.data.tags.length > 0) {
     console.log('   Top tags:');
-    data.data.tags.slice(0, 5).forEach((tag: any) => {
+    interface Tag {
+      name: string;
+      noteCount: number;
+    }
+    data.data.tags.slice(0, 5).forEach((tag: Tag) => {
       console.log(`     - ${tag.name} (${tag.noteCount} notes)`);
     });
   }

@@ -1747,11 +1747,6 @@
           "Notes"
         ],
         "parameters": [],
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
         "responses": {
           "200": {
             "description": "Notes retrieved successfully",
@@ -1793,11 +1788,6 @@
           "Notes"
         ],
         "parameters": [],
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1877,11 +1867,6 @@
           "Notes"
         ],
         "parameters": [],
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
         "responses": {
           "200": {
             "description": "Note retrieved successfully",
@@ -1923,11 +1908,6 @@
           "Notes"
         ],
         "parameters": [],
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2003,11 +1983,6 @@
           "Notes"
         ],
         "parameters": [],
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
         "responses": {
           "200": {
             "description": "Note deleted successfully",
@@ -2119,11 +2094,6 @@
           "Tags"
         ],
         "parameters": [],
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
         "responses": {
           "200": {
             "description": "Tags retrieved successfully",

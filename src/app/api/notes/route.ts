@@ -1,25 +1,21 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-config';
-import { getDb } from '@/lib/db';
-import { notes, tags, noteTags, users } from '@/lib/schema';
-import {
-  CreateNoteSchema,
-  NoteSearchSchema,
-  NoteResponseSchema,
-} from '@/schemas/notes';
-import { eq, and, desc, asc, like, inArray } from 'drizzle-orm';
-import { createId } from '@paralleldrive/cuid2';
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-config";
+import { getDb } from "@/lib/db";
+import { notes, tags, noteTags, type Note } from "@/lib/schema";
+import { CreateNoteSchema, NoteSearchSchema } from "@/schemas/notes";
+import { eq, and, desc, like, inArray } from "drizzle-orm";
+import { createId } from "@paralleldrive/cuid2";
 import {
   validateEditorContent,
   stringifyEditorContent,
-} from '@/lib/editor-utils';
-import z from 'zod';
+} from "@/lib/editor-utils";
+import z from "zod";
 
 /**
  * Get notes
  * @description Get notes with optional filters
- * @auth bearer
+ * @security cookieAuth
  * @response NotesResponseSchema:Notes retrieved successfully
  * @openapi
  */
@@ -27,21 +23,21 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
     const queryParams = {
-      query: searchParams.get('query') || undefined,
-      tags: searchParams.get('tags')?.split(',').filter(Boolean) || undefined,
+      query: searchParams.get("query") || undefined,
+      tags: searchParams.get("tags")?.split(",").filter(Boolean) || undefined,
       isArchived:
-        searchParams.get('isArchived') === 'true'
+        searchParams.get("isArchived") === "true"
           ? true
-          : searchParams.get('isArchived') === 'false'
+          : searchParams.get("isArchived") === "false"
           ? false
           : undefined,
-      page: parseInt(searchParams.get('page') || '1'),
-      limit: parseInt(searchParams.get('limit') || '20'),
+      page: parseInt(searchParams.get("page") || "1"),
+      limit: parseInt(searchParams.get("limit") || "20"),
     };
 
     // Validate query parameters
@@ -49,7 +45,7 @@ export async function GET(request: NextRequest) {
     const db = getDb();
 
     // Build the base query
-    let whereConditions = [eq(notes.userId, session.user.id)];
+    const whereConditions = [eq(notes.userId, session.user.id)];
 
     // Add archive filter
     if (validatedParams.isArchived !== undefined) {
@@ -65,7 +61,7 @@ export async function GET(request: NextRequest) {
     const offset = (validatedParams.page - 1) * validatedParams.limit;
 
     // Get notes with tag filtering if needed
-    let noteResults;
+    let noteResults: Note[];
     if (validatedParams.tags && validatedParams.tags.length > 0) {
       // Complex query with tag filtering
       const taggedNoteIds = await db
@@ -79,7 +75,7 @@ export async function GET(request: NextRequest) {
           )
         );
 
-      const noteIds = taggedNoteIds.map(row => row.noteId);
+      const noteIds = taggedNoteIds.map((row) => row.noteId);
 
       if (noteIds.length === 0) {
         noteResults = [];
@@ -106,7 +102,7 @@ export async function GET(request: NextRequest) {
 
     // Get tags for each note
     const notesWithTags = await Promise.all(
-      noteResults.map(async note => {
+      noteResults.map(async (note) => {
         const noteTags_result = await db
           .select({ name: tags.name })
           .from(noteTags)
@@ -116,7 +112,7 @@ export async function GET(request: NextRequest) {
         return {
           ...note,
           content: JSON.parse(note.content as string),
-          tags: noteTags_result.map(tag => tag.name),
+          tags: noteTags_result.map((tag) => tag.name),
         };
       })
     );
@@ -130,7 +126,7 @@ export async function GET(request: NextRequest) {
     const total = totalResult.length;
 
     return NextResponse.json({
-      message: 'Notes retrieved successfully',
+      message: "Notes retrieved successfully",
       data: {
         notes: notesWithTags,
         total,
@@ -139,9 +135,9 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('GET /api/notes error:', error);
+    console.error("GET /api/notes error:", error);
     return NextResponse.json(
-      { error: 'Failed to retrieve notes' },
+      { error: "Failed to retrieve notes" },
       { status: 500 }
     );
   }
@@ -150,7 +146,7 @@ export async function GET(request: NextRequest) {
 /**
  * Create note
  * @description Create a new note with title, content, and optional tags
- * @auth bearer
+ * @security cookieAuth
  * @body CreateNoteSchema
  * @response NoteResponseSchema:Note created successfully
  * @openapi
@@ -159,7 +155,7 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
@@ -224,7 +220,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
-        message: 'Note created successfully',
+        message: "Note created successfully",
         note: {
           ...newNote,
           content: validatedContent,
@@ -234,15 +230,15 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error('POST /api/notes error:', error);
+    console.error("POST /api/notes error:", error);
 
     // Handle validation errors
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         {
-          error: 'Validation failed',
-          details: error.issues.map(err => ({
-            field: err.path.join('.'),
+          error: "Validation failed",
+          details: error.issues.map((err) => ({
+            field: err.path.join("."),
             message: err.message,
           })),
         },
@@ -251,7 +247,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Failed to create note' },
+      { error: "Failed to create note" },
       { status: 500 }
     );
   }
