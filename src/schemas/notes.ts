@@ -12,7 +12,8 @@ export const ParagraphBlockDataSchema = z.object({
 
 export const ListBlockDataSchema = z.object({
   style: z.enum(["ordered", "unordered"]).describe("List style"),
-  items: z.array(z.string()).describe("List items"),
+  meta: z.record(z.string(), z.any()).optional().describe("List metadata"),
+  items: z.array(z.any()).describe("List items (flexible structure)"),
 });
 
 export const QuoteBlockDataSchema = z.object({
@@ -21,7 +22,9 @@ export const QuoteBlockDataSchema = z.object({
   alignment: z.enum(["left", "center"]).optional().describe("Quote alignment"),
 });
 
-export const DelimiterBlockDataSchema = z.object({}).describe("Delimiter block (no data)");
+export const DelimiterBlockDataSchema = z
+  .object({})
+  .describe("Delimiter block (no data)");
 
 // Union type for all possible block data
 export const BlockDataSchema = z.union([
@@ -35,7 +38,9 @@ export const BlockDataSchema = z.union([
 // Editor.js block schema
 export const EditorBlockSchema = z.object({
   id: z.string().describe("Unique block identifier"),
-  type: z.enum(["header", "paragraph", "list", "quote", "delimiter"]).describe("Block type"),
+  type: z
+    .enum(["header", "paragraph", "list", "quote", "delimiter"])
+    .describe("Block type"),
   data: BlockDataSchema.describe("Block-specific data"),
 });
 
@@ -50,12 +55,22 @@ export const EditorContentSchema = z.object({
 export const CreateNoteSchema = z.object({
   title: z.string().min(1, "Title is required").describe("Note title"),
   content: EditorContentSchema.describe("Note content in Editor.js format"),
-  tags: z.array(z.string()).optional().default([]).describe("Array of tag names"),
+  tags: z
+    .array(z.string())
+    .optional()
+    .default([])
+    .describe("Array of tag names"),
 });
 
 export const UpdateNoteSchema = z.object({
-  title: z.string().min(1, "Title is required").optional().describe("Note title"),
-  content: EditorContentSchema.optional().describe("Note content in Editor.js format"),
+  title: z
+    .string()
+    .min(1, "Title is required")
+    .optional()
+    .describe("Note title"),
+  content: EditorContentSchema.optional().describe(
+    "Note content in Editor.js format"
+  ),
   tags: z.array(z.string()).optional().describe("Array of tag names"),
   isArchived: z.boolean().optional().describe("Archive status"),
 });
@@ -87,7 +102,14 @@ export const NoteSearchSchema = z.object({
   tags: z.array(z.string()).optional().describe("Filter by tags"),
   isArchived: z.boolean().optional().describe("Filter by archive status"),
   page: z.number().int().min(1).optional().default(1).describe("Page number"),
-  limit: z.number().int().min(1).max(100).optional().default(20).describe("Items per page"),
+  limit: z
+    .number()
+    .int()
+    .min(1)
+    .max(100)
+    .optional()
+    .default(20)
+    .describe("Items per page"),
 });
 
 // Tag schemas

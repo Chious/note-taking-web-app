@@ -54,7 +54,7 @@ export async function GET(
 
     const noteWithTags = {
       ...note,
-      content: JSON.parse(note.content as string),
+      content: note.content,
       tags: noteTags_result.map((tag) => tag.name),
     };
 
@@ -104,7 +104,25 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const validatedData = UpdateNoteSchema.parse(body);
+    console.log("Received update data:", JSON.stringify(body, null, 2));
+
+    let validatedData;
+    try {
+      validatedData = UpdateNoteSchema.parse(body);
+      console.log("Validated data:", JSON.stringify(validatedData, null, 2));
+    } catch (validationError) {
+      console.error("Validation error:", validationError);
+      return NextResponse.json(
+        {
+          error: "Invalid request data",
+          details:
+            validationError instanceof Error
+              ? validationError.message
+              : "Unknown validation error",
+        },
+        { status: 400 }
+      );
+    }
 
     const now = new Date().toISOString();
     const updateData: Record<string, unknown> = {
@@ -194,7 +212,7 @@ export async function PUT(
         content:
           validatedData.content !== undefined
             ? validatedData.content
-            : JSON.parse(updatedNote.content as string),
+            : updatedNote.content, // Drizzle ORM with mode: 'json' already handles parsing
         tags: updatedTags,
       },
     });
