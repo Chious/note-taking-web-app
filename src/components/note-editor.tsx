@@ -1,19 +1,19 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import Editor from "@/components/editor";
-import { useCreateNote, useUpdateNote } from "@/hooks/use-notes";
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import Editor from '@/components/editor';
+import { useCreateNote, useUpdateNote } from '@/hooks/use-notes';
 import {
   type Note,
   type CreateNote,
   type UpdateNote,
   type EditorContent,
-} from "@/schemas/notes";
-import { Calendar, Tag, Archive, Save, Loader2, X } from "lucide-react";
-import { UTFToLocalTime } from "@/lib/time";
+} from '@/schemas/notes';
+import { Calendar, Tag, Archive, Save, Loader2, X } from 'lucide-react';
+import { UTFToLocalTime } from '@/lib/time';
 // Simple toast implementation - we'll use console.log for now and can enhance later
 const useToast = () => ({
   toast: ({
@@ -26,34 +26,32 @@ const useToast = () => ({
     variant?: string;
   }) => {
     console.log(
-      `${variant === "destructive" ? "❌" : "✅"} ${title}: ${description}`
+      `${variant === 'destructive' ? '❌' : '✅'} ${title}: ${description}`
     );
     // In a real implementation, you'd show a proper toast notification
   },
 });
 
 interface NoteEditorProps {
-  note?: Note;
+  note?: Note | Partial<Note>;
   onSave?: (note: Note) => void;
   onCancel?: () => void;
   className?: string;
   editorId?: string;
-  dataId?: string;
 }
 
 export function NoteEditor({
   note,
   onSave,
   onCancel,
-  className = "",
-  editorId = "note-editor",
-  dataId,
+  className = '',
+  editorId = 'note-editor',
 }: NoteEditorProps) {
   const { toast } = useToast();
   const createNoteMutation = useCreateNote();
   const updateNoteMutation = useUpdateNote();
   // Form state
-  const [title, setTitle] = useState(note?.title || "");
+  const [title, setTitle] = useState(note?.title || '');
   const [content, setContent] = useState<{
     time?: number;
     blocks: unknown[];
@@ -66,12 +64,12 @@ export function NoteEditor({
   // Update form state when note changes
   useEffect(() => {
     if (note) {
-      setTitle(note.title);
-      setContent(note.content);
-      setTags(note.tags);
-      setIsArchived(note.isArchived);
+      setTitle(note.title || '');
+      setContent(note.content || null);
+      setTags(note.tags || []);
+      setIsArchived(note.isArchived || false);
     } else {
-      setTitle("");
+      setTitle('');
       setContent(null);
       setTags([]);
       setIsArchived(false);
@@ -81,41 +79,42 @@ export function NoteEditor({
   // Track changes
   useEffect(() => {
     if (!note) {
-      setHasUnsavedChanges(title.trim() !== "" || tags.length > 0);
+      setHasUnsavedChanges(title.trim() !== '' || tags.length > 0);
     } else {
       setHasUnsavedChanges(
         title !== note.title ||
-          JSON.stringify(tags.sort()) !== JSON.stringify(note.tags.sort()) ||
+          JSON.stringify(tags.sort()) !==
+            JSON.stringify((note.tags || []).sort()) ||
           isArchived !== note.isArchived
       );
     }
   }, [title, tags, isArchived, note]);
 
   const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter((tag) => tag !== tagToRemove));
+    setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
   const handleSave = async () => {
     if (!title.trim()) {
       toast({
-        title: "Validation Error",
-        description: "Note title is required",
-        variant: "destructive",
+        title: 'Validation Error',
+        description: 'Note title is required',
+        variant: 'destructive',
       });
       return;
     }
 
     if (!content || !content.blocks || content.blocks.length === 0) {
       toast({
-        title: "Validation Error",
-        description: "Note content cannot be empty",
-        variant: "destructive",
+        title: 'Validation Error',
+        description: 'Note content cannot be empty',
+        variant: 'destructive',
       });
       return;
     }
 
     // Debug logging
-    console.log("Saving note with content:", JSON.stringify(content, null, 2));
+    console.log('Saving note with content:', JSON.stringify(content, null, 2));
 
     try {
       if (note?.id) {
@@ -132,11 +131,11 @@ export function NoteEditor({
           data: updateData,
         });
 
-        console.log("PUT note response", result);
+        console.log('PUT note response', result);
 
         toast({
-          title: "Success",
-          description: "Note updated successfully",
+          title: 'Success',
+          description: 'Note updated successfully',
         });
 
         onSave?.(result.note);
@@ -151,23 +150,23 @@ export function NoteEditor({
         const result = await createNoteMutation.mutateAsync(createData);
 
         toast({
-          title: "Success",
-          description: "Note created successfully",
+          title: 'Success',
+          description: 'Note created successfully',
         });
 
         onSave?.(result.note);
 
         // Reset form for new note
-        setTitle("");
+        setTitle('');
         setTags([]);
         setIsArchived(false);
       }
     } catch (error) {
       toast({
-        title: "Error",
+        title: 'Error',
         description:
-          error instanceof Error ? error.message : "Failed to save note",
-        variant: "destructive",
+          error instanceof Error ? error.message : 'Failed to save note',
+        variant: 'destructive',
       });
     }
   };
@@ -175,19 +174,19 @@ export function NoteEditor({
   const handleCancel = () => {
     if (hasUnsavedChanges) {
       const confirmed = window.confirm(
-        "You have unsaved changes. Are you sure you want to cancel?"
+        'You have unsaved changes. Are you sure you want to cancel?'
       );
       if (!confirmed) return;
     }
 
     if (note) {
       // Reset to original values
-      setTitle(note.title);
-      setTags(note.tags);
-      setIsArchived(note.isArchived);
+      setTitle(note.title || '');
+      setTags(note.tags || []);
+      setIsArchived(note.isArchived || false);
     } else {
       // Clear form
-      setTitle("");
+      setTitle('');
       setTags([]);
       setIsArchived(false);
     }
@@ -204,7 +203,7 @@ export function NoteEditor({
       <div className="mb-4 flex-shrink-0">
         <Input
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={e => setTitle(e.target.value)}
           placeholder="Enter note title..."
           className="text-lg font-semibold border-transparent border border-solid shadow-none px-0"
           disabled={isLoading}
@@ -218,7 +217,7 @@ export function NoteEditor({
           <span>Tags:</span>
 
           <div className="flex flex-wrap gap-2">
-            {tags.map((tag) => (
+            {tags.map(tag => (
               <Badge
                 key={tag}
                 variant="secondary"
@@ -246,8 +245,8 @@ export function NoteEditor({
           <Archive className="w-4 h-4" />
           <span>Status:</span>
           <select
-            value={isArchived ? "archived" : "active"}
-            onChange={(e) => setIsArchived(e.target.value === "archived")}
+            value={isArchived ? 'archived' : 'active'}
+            onChange={e => setIsArchived(e.target.value === 'archived')}
             className="bg-white appearance-none border border-border rounded px-2 py-1 text-foreground text-sm"
             disabled={isLoading}
           >
@@ -262,7 +261,7 @@ export function NoteEditor({
         <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground flex-shrink-0">
           <Calendar className="w-4 h-4" />
           <span>Last edited:</span>
-          <span>{UTFToLocalTime(note.lastEdited)}</span>
+          <span>{UTFToLocalTime(note.lastEdited || '')}</span>
         </div>
       )}
 
@@ -272,7 +271,6 @@ export function NoteEditor({
           editorId={editorId}
           data={note?.content}
           placeholder="Start writing your note..."
-          dataId={dataId}
           onChange={setContent}
         />
       </div>
@@ -303,7 +301,7 @@ export function NoteEditor({
           ) : (
             <>
               <Save className="w-4 h-4 mr-2" />
-              {note ? "Update" : "Create"}
+              {note?.id ? 'Update' : 'Create'}
             </>
           )}
         </Button>

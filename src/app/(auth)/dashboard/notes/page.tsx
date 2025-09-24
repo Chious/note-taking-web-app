@@ -1,34 +1,35 @@
-'use client';
+"use client";
 
-import { NoteDialog } from '@/components/note-dialog';
-import { NoteEditor } from '@/components/note-editor';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+// TODO: onSave() Logic after saved;
+// TODO  remove useEffect, use props to deal with data;
+
+import { NoteDialog } from "@/components/note-dialog";
+import { NoteEditor } from "@/components/note-editor";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   useNoteSlug,
   useTagFilter,
   useSearchQuery,
   useNavParam,
-} from '@/hooks/use-params';
-import { UTFToLocalTime } from '@/lib/time';
-import { Tag, Search, X, ArrowLeft } from 'lucide-react';
-import { useMemo, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useNotes, extractTextFromEditorContent } from '@/hooks/use-notes';
-import { useTags } from '@/hooks/use-tags';
+} from "@/hooks/use-params";
+import { UTFToLocalTime } from "@/lib/time";
+import { Tag, Search, X, ArrowLeft } from "lucide-react";
+import { useMemo, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useNotes, extractTextFromEditorContent } from "@/hooks/use-notes";
+import { useTags } from "@/hooks/use-tags";
+import { type Note } from "@/schemas/notes";
 
-type Note = {
-  id?: string;
-  userId?: string;
-  title?: string;
-  content?: {
-    time?: number;
-    blocks?: unknown[];
-    version?: string;
-  };
-  isArchived?: boolean;
-  tags?: string[];
-  lastEdited?: string;
+const templateNote: Partial<Note> = {
+  title: "New Note",
+  content: {
+    time: Date.now(),
+    blocks: [],
+    version: "1.0.0",
+  },
+  isArchived: false,
+  tags: [],
 };
 
 export default function NotesPage() {
@@ -40,8 +41,8 @@ export default function NotesPage() {
 
   // Handle settings navigation on mobile
   useEffect(() => {
-    if (nav === 'settings') {
-      router.push('/dashboard/setting');
+    if (nav === "settings") {
+      router.push("/dashboard/setting");
       setNav(null);
     }
   }, [nav, router, setNav]);
@@ -57,7 +58,7 @@ export default function NotesPage() {
 
   // Filter notes based on current filters
   const filteredNotes = useMemo(() => {
-    return noteData?.data.notes.filter(item => {
+    return noteData?.data.notes.filter((item) => {
       // Tag filter
       const tagMatch = !tag || item.tags.includes(tag);
 
@@ -65,13 +66,13 @@ export default function NotesPage() {
       const searchMatch =
         !query ||
         item.title.toLowerCase().includes(query.toLowerCase()) ||
-        item.tags.some(t => t.toLowerCase().includes(query.toLowerCase())) ||
+        item.tags.some((t) => t.toLowerCase().includes(query.toLowerCase())) ||
         extractTextFromEditorContent(item.content)
           .toLowerCase()
           .includes(query.toLowerCase());
 
       // Navigation filter (archived status)
-      const navMatch = nav === 'archived' ? item.isArchived : !item.isArchived;
+      const navMatch = nav === "archived" ? item.isArchived : !item.isArchived;
 
       return tagMatch && searchMatch && navMatch;
     });
@@ -83,8 +84,8 @@ export default function NotesPage() {
   // Calculate tag counts
   const tagCounts = useMemo(() => {
     const counts = new Map<string, number>();
-    noteData?.data.notes.forEach(note => {
-      note.tags.forEach(tagName => {
+    noteData?.data.notes.forEach((note) => {
+      note.tags.forEach((tagName) => {
         counts.set(tagName, (counts.get(tagName) || 0) + 1);
       });
     });
@@ -94,58 +95,30 @@ export default function NotesPage() {
   const [isCreatingNote, setIsCreatingNote] = useState(false);
 
   const handleCreateNote = () => {
-    setIsCreatingNote(true);
     setSlug(null); // Clear any selected note
+    setDisplayNote(templateNote);
+    setIsCreatingNote(true); // Set creating note state
   };
 
-  const handleNoteCreated = (note: Note) => {
-    setIsCreatingNote(false);
-    setSlug(note.id || null); // Select the newly created note
-  };
-
-  const handleCancelCreate = () => {
-    setIsCreatingNote(false);
-  };
-
-  const displayNote = noteData?.data.notes.find(item => item.id === slug);
+  const [displayNote, setDisplayNote] = useState<Note | Partial<Note> | null>(
+    null
+  );
 
   // Mobile view: Show different content based on navigation state
   const renderMobileView = () => {
-    // Show note editor on mobile when creating a new note
-    if (isCreatingNote) {
+    // Show note editor on mobile when note is selected or creating new note
+    if (!nav && ((slug && displayNote) || (isCreatingNote && displayNote))) {
       return (
         <div className="flex flex-col h-full">
           <div className="flex items-center gap-3 p-4 border-b">
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleCancelCreate}
-              className="p-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <h1 className="text-lg font-semibold">Create New Note</h1>
-          </div>
-          <div className="flex-1 p-4">
-            <NoteEditor
-              onSave={handleNoteCreated}
-              onCancel={handleCancelCreate}
-              editorId="mobile-create-editor"
-            />
-          </div>
-        </div>
-      );
-    }
-
-    // Show note editor on mobile when note is selected
-    if (!nav && slug && displayNote) {
-      return (
-        <div className="flex flex-col h-full">
-          <div className="flex items-center gap-3 p-4 border-b">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSlug(null)}
+              onClick={() => {
+                setSlug(null);
+                setIsCreatingNote(false);
+                setDisplayNote(null);
+              }}
               className="p-2"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -157,13 +130,12 @@ export default function NotesPage() {
           <div className="flex-1 p-4">
             <NoteEditor
               note={displayNote}
-              onSave={updatedNote => {
-                // Note will be automatically updated via React Query
-                console.log('Note updated:', updatedNote);
+              onCancel={() => {
+                setSlug(null);
+                setIsCreatingNote(false);
+                setDisplayNote(null);
               }}
-              onCancel={() => setSlug(null)}
-              editorId={`mobile-edit-editor`}
-              dataId={slug || ''}
+              editorId={`mobile-shared-editor`}
             />
           </div>
         </div>
@@ -171,7 +143,7 @@ export default function NotesPage() {
     }
 
     // Show tags view on mobile
-    if (nav === 'tags') {
+    if (nav === "tags") {
       return (
         <div className="p-4 space-y-4">
           <div className="flex items-center justify-between">
@@ -193,14 +165,14 @@ export default function NotesPage() {
                 <p>No tags found</p>
               </div>
             ) : (
-              tagsData?.data.tags.map(tagItem => (
+              tagsData?.data.tags.map((tagItem) => (
                 <Button
                   key={tagItem.name}
                   variant="ghost"
                   className={`w-full flex items-center justify-between p-4 h-auto text-left ${
                     tag === tagItem.name
-                      ? 'bg-blue-50 text-blue-700 border-blue-200'
-                      : 'hover:bg-muted'
+                      ? "bg-blue-50 text-blue-700 border-blue-200"
+                      : "hover:bg-muted"
                   }`}
                   onClick={() => {
                     setTag(tagItem.name);
@@ -223,7 +195,7 @@ export default function NotesPage() {
     }
 
     // Show search results on mobile
-    if (nav === 'search' || query) {
+    if (nav === "search" || query) {
       return (
         <div className="p-4 space-y-4">
           <div className="flex items-center gap-3">
@@ -232,8 +204,8 @@ export default function NotesPage() {
               <Input
                 type="text"
                 placeholder="Search notes..."
-                value={query || ''}
-                onChange={e => setQuery(e.target.value || null)}
+                value={query || ""}
+                onChange={(e) => setQuery(e.target.value || null)}
                 className="pl-10"
               />
             </div>
@@ -264,7 +236,7 @@ export default function NotesPage() {
                 <p>No notes found matching your search</p>
               </div>
             ) : (
-              filteredNotes?.map(item => (
+              filteredNotes?.map((item) => (
                 <Button
                   key={item.id}
                   variant="ghost"
@@ -273,7 +245,7 @@ export default function NotesPage() {
                 >
                   <h3 className="font-semibold text-base">{item.title}</h3>
                   <div className="flex gap-1 flex-wrap">
-                    {item.tags.map(tagName => (
+                    {item.tags.map((tagName) => (
                       <span
                         key={tagName}
                         className="text-xs bg-neutral-600 text-white px-2 py-1 rounded"
@@ -328,24 +300,27 @@ export default function NotesPage() {
               )}
             </div>
           ) : (
-            filteredNotes?.map(item => (
+            filteredNotes?.map((item) => (
               <Button
                 key={item.id}
                 variant="ghost"
                 className="w-full h-auto flex flex-col items-start gap-2 p-4 text-left border border-border hover:bg-muted"
-                onClick={() => setSlug(item.id)}
+                onClick={() => {
+                  setSlug(item.id);
+                  setDisplayNote(item);
+                }}
               >
                 <h3 className="font-semibold text-base">{item.title}</h3>
                 <div className="flex gap-1 flex-wrap">
-                  {item.tags.map(tagName => (
+                  {item.tags.map((tagName) => (
                     <span
                       key={tagName}
                       className={`text-xs rounded px-2 py-1 ${
                         tag === tagName
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-neutral-600 text-white'
+                          ? "bg-blue-500 text-white"
+                          : "bg-neutral-600 text-white"
                       }`}
-                      onClick={e => {
+                      onClick={(e) => {
                         e.stopPropagation();
                         setTag(tag === tagName ? null : tagName);
                       }}
@@ -389,7 +364,7 @@ export default function NotesPage() {
           <p className="text-muted-foreground mb-4">
             {error instanceof Error
               ? error.message
-              : 'An unexpected error occurred'}
+              : "An unexpected error occurred"}
           </p>
           <Button onClick={() => window.location.reload()}>Try Again</Button>
         </div>
@@ -436,28 +411,31 @@ export default function NotesPage() {
               )}
             </div>
           ) : (
-            filteredNotes?.map(item => (
+            filteredNotes?.map((item) => (
               <Button
                 key={item.id}
                 variant="ghost"
                 className={`w-full h-fit flex items-start flex-col gap-3 justify-between text-left border border-solid p-4 whitespace-normal ${
                   slug === item.id
-                    ? 'bg-gray-200 text-black border-none'
-                    : 'bg-secondary text-secondary-foreground hover:bg-muted border-border'
+                    ? "bg-gray-200 text-black border-none"
+                    : "bg-secondary text-secondary-foreground hover:bg-muted border-border"
                 }`}
-                onClick={() => setSlug(item.id)}
+                onClick={() => {
+                  setSlug(item.id);
+                  setDisplayNote(item);
+                }}
               >
                 <h2 className="text-lg font-bold break-words">{item.title}</h2>
                 <span className="text-sm flex gap-2 flex-wrap">
-                  {item.tags.map(tagName => (
+                  {item.tags.map((tagName) => (
                     <span
                       key={tagName}
                       className={`text-xs rounded-md px-2 py-1 ${
                         tag === tagName
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-neutral-600 text-white'
+                          ? "bg-blue-500 text-white"
+                          : "bg-neutral-600 text-white"
                       }`}
-                      onClick={e => {
+                      onClick={(e) => {
                         e.stopPropagation();
                         setTag(tag === tagName ? null : tagName);
                       }}
@@ -482,35 +460,16 @@ export default function NotesPage() {
 
       {/* Desktop Main Content */}
       <section className="hidden md:flex p-4 flex-1 h-full item-start justify-start flex-col gap-4">
-        {isCreatingNote ? (
-          <div className="flex flex-col h-full">
-            <div className="flex items-center justify-between mb-4">
-              <h1 className="text-2xl font-bold text-foreground">
-                Create New Note
-              </h1>
-              <Button variant="outline" onClick={handleCancelCreate}>
-                Cancel
-              </Button>
-            </div>
-            <div className="flex-1">
-              <NoteEditor
-                onSave={handleNoteCreated}
-                onCancel={handleCancelCreate}
-                editorId="desktop-create-editor"
-              />
-            </div>
-          </div>
-        ) : displayNote ? (
+        {displayNote ? (
           <div className="flex flex-col h-full">
             <NoteEditor
               note={displayNote}
-              onSave={updatedNote => {
-                // Note will be automatically updated via React Query
-                console.log('Note updated:', updatedNote);
+              onCancel={() => {
+                setSlug(null);
+                setIsCreatingNote(false);
+                setDisplayNote(null);
               }}
-              onCancel={() => setSlug(null)}
-              editorId={`desktop-edit-editor`}
-              dataId={slug || ''}
+              editorId={`desktop-shared-editor`}
             />
           </div>
         ) : (
@@ -543,13 +502,13 @@ export default function NotesPage() {
             <NoteDialog
               triggerText="Archive Note"
               type="archiveNote"
-              noteId={displayNote.id}
+              noteId={displayNote.id || ""}
               onSuccess={() => setSlug(null)}
             />
             <NoteDialog
               triggerText="Delete Note"
               type="deleteNote"
-              noteId={displayNote.id}
+              noteId={displayNote.id || ""}
               onSuccess={() => setSlug(null)}
             />
           </>
