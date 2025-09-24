@@ -1,25 +1,26 @@
-import type { Metadata } from "next";
-import { Inter, Noto_Serif, Source_Code_Pro } from "next/font/google";
-import { ThemeProvider } from "@/components/theme-provider";
-import "./globals.css";
+import type { Metadata } from 'next';
+import { Inter, Noto_Serif, Source_Code_Pro } from 'next/font/google';
+import { ThemeProvider } from '@/providers/theme-provider';
+import { QueryProvider } from '@/providers/query-provider';
+import './globals.css';
 
 const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
+  variable: '--font-inter',
+  subsets: ['latin'],
 });
 
 const notoSerif = Noto_Serif({
-  variable: "--font-noto-serif",
-  subsets: ["latin"],
+  variable: '--font-noto-serif',
+  subsets: ['latin'],
 });
 
 const sourceCodePro = Source_Code_Pro({
-  variable: "--font-source-code-pro",
-  subsets: ["latin"],
+  variable: '--font-source-code-pro',
+  subsets: ['latin'],
 });
 
 export const metadata: Metadata = {
-  title: "Frontend Mentor | Note-taking web app",
+  title: 'Frontend Mentor | Note-taking web app',
 };
 
 export default function RootLayout({
@@ -32,13 +33,15 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${notoSerif.variable} ${sourceCodePro.variable} antialiased`}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          disableTransitionOnChange
-        >
-          {children}
-        </ThemeProvider>
+        <QueryProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            disableTransitionOnChange
+          >
+            {children}
+          </ThemeProvider>
+        </QueryProvider>
       </body>
     </html>
   );
