@@ -1,12 +1,13 @@
-"use client";
+'use client';
 
-import { useMemo } from "react";
-import { cn } from "@/lib/utils";
-import { FileText, Archive, Tag, Search, Settings } from "lucide-react";
-import Image from "next/image";
-import data from "@/data/data.json";
-import { useNavParam, useTagFilter } from "@/hooks/use-params";
-import { useRouter } from "next/navigation";
+import { useMemo } from 'react';
+import { cn } from '@/lib/utils';
+import { FileText, Archive, Tag, Search, Settings } from 'lucide-react';
+import Image from 'next/image';
+import { useNavParam, useTagFilter } from '@/hooks/use-params';
+import { useRouter } from 'next/navigation';
+import { useTags } from '@/hooks/use-tags';
+import { useNotes } from '@/hooks/use-notes';
 
 interface SidebarProps {
   className?: string;
@@ -19,67 +20,78 @@ export function AppSidebar({ className }: SidebarProps) {
   const { tag, setTag } = useTagFilter();
   const router = useRouter();
 
-  // Calculate real counts from data
-  const counts = useMemo(() => {
-    const allNotes = data.notes.filter((note) => !note.isArchived);
-    const archivedNotes = data.notes.filter((note) => note.isArchived);
+  // Fetch data using React Query
+  const { data: tagsResponse } = useTags();
+  const { data: allNotesResponse } = useNotes({
+    page: 1,
+    limit: 100,
+    isArchived: false,
+  });
+  const { data: archivedNotesResponse } = useNotes({
+    page: 1,
+    limit: 100,
+    isArchived: true,
+  });
 
+  // Calculate real counts from API data
+  const counts = useMemo(() => {
+    const allNotesCount = allNotesResponse?.data.total || 0;
+    const archivedNotesCount = archivedNotesResponse?.data.total || 0;
+
+    // Create tag counts map from tags response
     const tagCounts = new Map<string, number>();
-    data.notes.forEach((note) => {
-      note.tags.forEach((tagName) => {
-        tagCounts.set(tagName, (tagCounts.get(tagName) || 0) + 1);
+    if (tagsResponse?.data.tags) {
+      tagsResponse.data.tags.forEach(tag => {
+        tagCounts.set(tag.name, tag.noteCount);
       });
-    });
+    }
 
     return {
-      allNotes: allNotes.length,
-      archived: archivedNotes.length,
+      allNotes: allNotesCount,
+      archived: archivedNotesCount,
       tags: tagCounts,
     };
-  }, []);
+  }, [allNotesResponse, archivedNotesResponse, tagsResponse]);
 
-  // Get all unique tags
+  // Get all unique tags from API
   const allTags = useMemo(() => {
-    const tagSet = new Set<string>();
-    data.notes.forEach((note) => {
-      note.tags.forEach((tag) => tagSet.add(tag));
-    });
-    return Array.from(tagSet).sort();
-  }, []);
+    if (!tagsResponse?.data.tags) return [];
+    return tagsResponse.data.tags.map(tag => tag.name).sort();
+  }, [tagsResponse]);
 
   const navigationItems = [
     {
-      section: "notes",
-      title: "Notes",
+      section: 'notes',
+      title: 'Notes',
       items: [
         {
-          id: "all-notes",
-          label: "All Notes",
+          id: 'all-notes',
+          label: 'All Notes',
           icon: FileText,
           count: counts.allNotes,
           onClick: () => setNav(null),
         },
         {
-          id: "archived",
-          label: "Archived Notes",
+          id: 'archived',
+          label: 'Archived Notes',
           icon: Archive,
           count: counts.archived,
-          onClick: () => setNav("archived"),
+          onClick: () => setNav('archived'),
         },
       ],
     },
     {
-      section: "tags",
-      title: "Tags",
+      section: 'tags',
+      title: 'Tags',
       items: [
         {
-          id: "all-tags",
-          label: "All Tags",
+          id: 'all-tags',
+          label: 'All Tags',
           icon: Tag,
           count: allTags.length,
           onClick: () => setTag(null),
         },
-        ...allTags.map((tagName) => ({
+        ...allTags.map(tagName => ({
           id: `tag-${tagName}`,
           label: tagName,
           icon: Tag,
@@ -92,8 +104,8 @@ export function AppSidebar({ className }: SidebarProps) {
 
   const mobileNavItems = [
     {
-      id: "home",
-      label: "Home",
+      id: 'home',
+      label: 'Home',
       icon: FileText,
       onClick: () => {
         setNav(null);
@@ -102,37 +114,37 @@ export function AppSidebar({ className }: SidebarProps) {
       isActive: !nav && !tag,
     },
     {
-      id: "search",
-      label: "Search",
+      id: 'search',
+      label: 'Search',
       icon: Search,
-      onClick: () => setNav("search"),
-      isActive: nav === "search",
+      onClick: () => setNav('search'),
+      isActive: nav === 'search',
     },
     {
-      id: "archived",
-      label: "Archive",
+      id: 'archived',
+      label: 'Archive',
       icon: Archive,
       onClick: () => {
-        setNav("archived");
+        setNav('archived');
         setTag(null);
       },
-      isActive: nav === "archived",
+      isActive: nav === 'archived',
     },
     {
-      id: "tags",
-      label: "Tags",
+      id: 'tags',
+      label: 'Tags',
       icon: Tag,
       onClick: () => {
         setTag(null);
-        setNav("tags");
+        setNav('tags');
       },
-      isActive: nav === "tags",
+      isActive: nav === 'tags',
     },
     {
-      id: "settings",
-      label: "Settings",
+      id: 'settings',
+      label: 'Settings',
       icon: Settings,
-      onClick: () => router.push("/dashboard/setting"),
+      onClick: () => router.push('/dashboard/setting'),
       isActive: false, // Settings is handled by separate page
     },
   ];
@@ -142,7 +154,7 @@ export function AppSidebar({ className }: SidebarProps) {
       {/* Desktop Sidebar */}
       <aside
         className={cn(
-          "hidden md:flex flex-col w-64 bg-sidebar border-r border-sidebar-border h-screen",
+          'hidden md:flex flex-col w-64 bg-sidebar border-r border-sidebar-border h-screen',
           className
         )}
       >
@@ -150,13 +162,13 @@ export function AppSidebar({ className }: SidebarProps) {
           <Image src="/logo.svg" alt="Note App" width={100} height={100} />
         </div>
         <nav className="flex-1 p-4 space-y-6">
-          {navigationItems.map((section) => (
+          {navigationItems.map(section => (
             <div key={section.section}>
               <h2 className="text-sm font-semibold text-sidebar-foreground/70 mb-3 uppercase tracking-wide">
                 {section.title}
               </h2>
               <ul className="space-y-1">
-                {section.items.map((item) => {
+                {section.items.map(item => {
                   const Icon = item.icon;
                   const isActive = nav === item.id;
 
@@ -165,27 +177,27 @@ export function AppSidebar({ className }: SidebarProps) {
                       <button
                         onClick={() => item.onClick?.()}
                         className={cn(
-                          "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors",
+                          'w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors',
                           isActive
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                            : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                            ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                            : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground'
                         )}
                       >
                         <div className="flex items-center gap-3">
                           <Icon
                             className={cn(
-                              "h-4 w-4 transition-colors",
-                              isActive ? "text-blue-500" : ""
+                              'h-4 w-4 transition-colors',
+                              isActive ? 'text-blue-500' : ''
                             )}
                           />
                           <span>{item.label}</span>
                         </div>
                         <span
                           className={cn(
-                            "text-xs px-2 py-1 rounded-full font-medium",
+                            'text-xs px-2 py-1 rounded-full font-medium',
                             isActive
-                              ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                              : "bg-muted text-muted-foreground"
+                              ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                              : 'bg-muted text-muted-foreground'
                           )}
                         >
                           {item.count}
@@ -203,20 +215,20 @@ export function AppSidebar({ className }: SidebarProps) {
       {/* Mobile Sidebar Drawer */}
       <aside
         className={cn(
-          "md:hidden fixed top-0 left-0 z-50 w-64 h-screen bg-sidebar border-r border-sidebar-border transform transition-transform duration-300 ease-in-out -translate-x-full"
+          'md:hidden fixed top-0 left-0 z-50 w-64 h-screen bg-sidebar border-r border-sidebar-border transform transition-transform duration-300 ease-in-out -translate-x-full'
         )}
       >
         <div className="p-6 border-b border-sidebar-border">
           <Image src="/logo.svg" alt="Note App" width={100} height={100} />
         </div>
         <nav className="flex-1 p-4 space-y-6">
-          {navigationItems.map((section) => (
+          {navigationItems.map(section => (
             <div key={section.section}>
               <h2 className="text-sm font-semibold text-sidebar-foreground/70 mb-3 uppercase tracking-wide">
                 {section.title}
               </h2>
               <ul className="space-y-1">
-                {section.items.map((item) => {
+                {section.items.map(item => {
                   const Icon = item.icon;
                   const isActive = nav === item.id;
 
@@ -225,27 +237,27 @@ export function AppSidebar({ className }: SidebarProps) {
                       <button
                         onClick={() => item.onClick?.()}
                         className={cn(
-                          "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors",
+                          'w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors',
                           isActive
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                            : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                            ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                            : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground'
                         )}
                       >
                         <div className="flex items-center gap-3">
                           <Icon
                             className={cn(
-                              "h-4 w-4 transition-colors",
-                              isActive ? "text-blue-500" : ""
+                              'h-4 w-4 transition-colors',
+                              isActive ? 'text-blue-500' : ''
                             )}
                           />
                           <span>{item.label}</span>
                         </div>
                         <span
                           className={cn(
-                            "text-xs px-2 py-1 rounded-full font-medium",
+                            'text-xs px-2 py-1 rounded-full font-medium',
                             isActive
-                              ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                              : "bg-muted text-muted-foreground"
+                              ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                              : 'bg-muted text-muted-foreground'
                           )}
                         >
                           {item.count}
@@ -263,7 +275,7 @@ export function AppSidebar({ className }: SidebarProps) {
       {/* Mobile Bottom Navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-sidebar border-t border-sidebar-border">
         <div className="flex items-center justify-around py-2">
-          {mobileNavItems.map((item) => {
+          {mobileNavItems.map(item => {
             const Icon = item.icon;
 
             return (
@@ -271,8 +283,8 @@ export function AppSidebar({ className }: SidebarProps) {
                 key={item.id}
                 onClick={() => item.onClick?.()}
                 className={cn(
-                  "flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors",
-                  item.isActive ? "text-blue-500" : "text-sidebar-foreground/70"
+                  'flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors',
+                  item.isActive ? 'text-blue-500' : 'text-sidebar-foreground/70'
                 )}
               >
                 <Icon className="h-5 w-5" />

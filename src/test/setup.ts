@@ -1,6 +1,11 @@
 import "@testing-library/jest-dom";
 import { vi } from "vitest";
 
+// Mock next-auth server module once so helpers can set return values without redefining
+vi.mock("next-auth", () => ({
+  getServerSession: vi.fn(),
+}));
+
 // Mock environment variables
 process.env.JWT_SECRET = "test-jwt-secret-key-for-testing-purposes-only";
 process.env.NEXTAUTH_SECRET = "test-nextauth-secret-key-for-testing";

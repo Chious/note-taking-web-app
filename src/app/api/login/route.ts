@@ -1,12 +1,15 @@
-import { NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
-import { verifyPassword, generateToken } from "@/lib/auth";
-import { LoginRequestSchema } from "@/schemas/auth";
-import { users } from "@/lib/schema";
-import { eq } from "drizzle-orm";
-import z from "zod";
+import { NextResponse } from 'next/server';
+import { getDb } from '@/lib/db';
+import { verifyPassword, generateToken } from '@/lib/auth';
+import { LoginRequestSchema } from '@/schemas/auth';
+import { users } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
+import z from 'zod';
 
 /**
+ * Login
+ * @description Login with email and password
+ * @auth none
  * @body LoginRequestSchema
  * @response LoginResponseSchema:Login successful
  * @responseSet auth
@@ -19,8 +22,8 @@ export async function POST(request: Request) {
     // Validate request body
     const { email, password } = LoginRequestSchema.parse(body);
 
-    console.log("email", email);
-    console.log("password", password);
+    console.log('email', email);
+    console.log('password', password);
 
     // Find user by email
     const db = getDb();
@@ -37,7 +40,7 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json(
-        { error: "Invalid email or password" },
+        { error: 'Invalid email or password' },
         { status: 401 }
       );
     }
@@ -47,7 +50,7 @@ export async function POST(request: Request) {
 
     if (!isValidPassword) {
       return NextResponse.json(
-        { error: "Invalid email or password" },
+        { error: 'Invalid email or password' },
         { status: 401 }
       );
     }
@@ -57,7 +60,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        message: "Login successful",
+        message: 'Login successful',
         token,
         user: {
           id: user.id,
@@ -68,15 +71,15 @@ export async function POST(request: Request) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("Login error:", error);
+    console.error('Login error:', error);
 
     // Handle validation errors
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         {
-          error: "Validation failed",
-          details: error.issues.map((err) => ({
-            field: err.path.join("."),
+          error: 'Validation failed',
+          details: error.issues.map(err => ({
+            field: err.path.join('.'),
             message: err.message,
           })),
         },
@@ -85,16 +88,16 @@ export async function POST(request: Request) {
     }
 
     // Handle JWT secret missing error
-    if (error instanceof Error && error.message.includes("JWT_SECRET")) {
-      console.error("JWT_SECRET environment variable is not set");
+    if (error instanceof Error && error.message.includes('JWT_SECRET')) {
+      console.error('JWT_SECRET environment variable is not set');
       return NextResponse.json(
-        { error: "Server configuration error" },
+        { error: 'Server configuration error' },
         { status: 500 }
       );
     }
 
     return NextResponse.json(
-      { error: "Login failed. Please try again." },
+      { error: 'Login failed. Please try again.' },
       { status: 500 }
     );
   }

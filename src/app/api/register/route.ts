@@ -1,12 +1,15 @@
-import { NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
-import { hashPassword } from "@/lib/auth";
-import { RegisterRequestSchema } from "@/schemas/auth";
-import { users } from "@/lib/schema";
-import { eq } from "drizzle-orm";
-import z from "zod";
+import { NextResponse } from 'next/server';
+import { getDb } from '@/lib/db';
+import { hashPassword } from '@/lib/auth';
+import { RegisterRequestSchema } from '@/schemas/auth';
+import { users } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
+import z from 'zod';
 
 /**
+ * Register
+ * @description Register a new user with email and password
+ * @auth none
  * @body RegisterRequestSchema
  * @response 201:RegisterResponseSchema:User registered successfully
  * @responseSet auth
@@ -30,7 +33,7 @@ export async function POST(request: Request) {
 
     if (existingUser) {
       return NextResponse.json(
-        { error: "Email already in use" },
+        { error: 'Email already in use' },
         { status: 400 }
       );
     }
@@ -51,7 +54,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        message: "User registered successfully",
+        message: 'User registered successfully',
         user: {
           id: user.id,
           email: user.email,
@@ -61,15 +64,15 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("Registration error:", error);
+    console.error('Registration error:', error);
 
     // Handle validation errors
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         {
-          error: "Validation failed",
-          details: error.issues.map((err) => ({
-            field: err.path.join("."),
+          error: 'Validation failed',
+          details: error.issues.map(err => ({
+            field: err.path.join('.'),
             message: err.message,
           })),
         },
@@ -80,16 +83,16 @@ export async function POST(request: Request) {
     // Handle database errors
     if (error instanceof Error) {
       // Check for specific database constraint errors
-      if (error.message.includes("UNIQUE constraint failed")) {
+      if (error.message.includes('UNIQUE constraint failed')) {
         return NextResponse.json(
-          { error: "Email already in use" },
+          { error: 'Email already in use' },
           { status: 400 }
         );
       }
     }
 
     return NextResponse.json(
-      { error: "Registration failed. Please try again." },
+      { error: 'Registration failed. Please try again.' },
       { status: 500 }
     );
   }

@@ -1,10 +1,25 @@
 import { NoteDialog } from "@/components/note-dialog";
 
-export function NoteActionsSidebar() {
+interface NoteActionsSidebarProps {
+  noteId: string;
+  onSuccess?: () => void;
+}
+
+export function NoteActionsSidebar({ noteId, onSuccess }: NoteActionsSidebarProps) {
   return (
     <>
-      <NoteDialog triggerText="Archive Note" type="archiveNote" />
-      <NoteDialog triggerText="Delete Note" type="deleteNote" />
+      <NoteDialog 
+        triggerText="Archive Note" 
+        type="archiveNote" 
+        noteId={noteId}
+        onSuccess={onSuccess}
+      />
+      <NoteDialog 
+        triggerText="Delete Note" 
+        type="deleteNote" 
+        noteId={noteId}
+        onSuccess={onSuccess}
+      />
     </>
   );
 }

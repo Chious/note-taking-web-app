@@ -119,6 +119,98 @@
           "user"
         ]
       },
+      "NoteResponseSchema": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Response message"
+          },
+          "note": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "message",
+          "note",
+          "note"
+        ]
+      },
+      "UpdateNoteSchema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "nullable": true,
+            "description": "Note title"
+          },
+          "content": {
+            "type": "object",
+            "description": "Note content in Editor.js format"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "description": "Array of tag names"
+          },
+          "isArchived": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "Archive status"
+          }
+        }
+      },
+      "NotesResponseSchema": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Response message"
+          },
+          "data": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "message",
+          "data",
+          "data"
+        ]
+      },
+      "CreateNoteSchema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Note title"
+          },
+          "content": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EditorContentSchema"
+              }
+            ],
+            "description": "Note content in Editor.js format"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "description": "Array of tag names"
+          }
+        },
+        "required": [
+          "title",
+          "content"
+        ]
+      },
       "RegisterRequestSchema": {
         "type": "object",
         "properties": {
@@ -155,6 +247,23 @@
           "user"
         ]
       },
+      "TagsResponseSchema": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Response message"
+          },
+          "data": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "message",
+          "data",
+          "data"
+        ]
+      },
       "AuthTestResponseSchema": {
         "type": "object",
         "properties": {
@@ -172,6 +281,42 @@
         "required": [
           "message",
           "userId"
+        ]
+      },
+      "AuthRequestSchema": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 1,
+            "description": "API docs username"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "description": "API docs password"
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ]
+      },
+      "AuthResponseSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Authentication success status"
+          },
+          "message": {
+            "type": "string",
+            "description": "Response message"
+          }
+        },
+        "required": [
+          "success",
+          "message"
         ]
       },
       "UserSchema": {
@@ -437,6 +582,855 @@
           "db",
           "timestamp"
         ]
+      },
+      "AuthRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 1,
+            "description": "API docs username"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "description": "API docs password"
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ]
+      },
+      "AuthResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Authentication success status"
+          },
+          "message": {
+            "type": "string",
+            "description": "Response message"
+          }
+        },
+        "required": [
+          "success",
+          "message"
+        ]
+      },
+      "HeaderBlockDataSchema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Header text content"
+          },
+          "level": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6,
+            "description": "Header level (1-6)"
+          }
+        },
+        "required": [
+          "text",
+          "level"
+        ]
+      },
+      "ParagraphBlockDataSchema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Paragraph text content"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "ListBlockDataSchema": {
+        "type": "object",
+        "properties": {
+          "style": {
+            "type": "string",
+            "enum": [
+              "ordered",
+              "unordered"
+            ],
+            "description": "List style"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List items"
+          }
+        },
+        "required": [
+          "style",
+          "items"
+        ]
+      },
+      "QuoteBlockDataSchema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Quote text content"
+          },
+          "caption": {
+            "type": "string",
+            "nullable": true,
+            "description": "Quote caption/author"
+          },
+          "alignment": {
+            "type": "string",
+            "enum": [
+              "left",
+              "center"
+            ],
+            "nullable": true,
+            "description": "Quote alignment"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "DelimiterBlockDataSchema": {
+        "type": "object",
+        "properties": {},
+        "description": "Delimiter block (no data)"
+      },
+      "BlockDataSchema": {
+        "oneOf": [
+          {
+            "type": "object"
+          },
+          {
+            "type": "object"
+          },
+          {
+            "type": "object"
+          },
+          {
+            "type": "object"
+          },
+          {
+            "type": "object"
+          }
+        ]
+      },
+      "EditorBlockSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique block identifier"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "header",
+              "paragraph",
+              "list",
+              "quote",
+              "delimiter"
+            ],
+            "description": "Block type"
+          },
+          "data": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BlockDataSchema"
+              }
+            ],
+            "description": "Block-specific data"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "data"
+        ]
+      },
+      "EditorContentSchema": {
+        "type": "object",
+        "properties": {
+          "time": {
+            "type": "number",
+            "description": "Content creation/modification timestamp"
+          },
+          "blocks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EditorBlockSchema"
+            },
+            "description": "Array of content blocks"
+          },
+          "version": {
+            "type": "string",
+            "description": "Editor.js version"
+          }
+        },
+        "required": [
+          "time",
+          "blocks",
+          "version"
+        ]
+      },
+      "NoteSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique note identifier"
+          },
+          "userId": {
+            "type": "string",
+            "description": "Owner user ID"
+          },
+          "title": {
+            "type": "string",
+            "description": "Note title"
+          },
+          "content": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EditorContentSchema"
+              }
+            ],
+            "description": "Note content in Editor.js format"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of tag names"
+          },
+          "isArchived": {
+            "type": "boolean",
+            "description": "Archive status"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Creation timestamp"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update timestamp"
+          },
+          "lastEdited": {
+            "type": "string",
+            "description": "Last edit timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "title",
+          "content",
+          "tags",
+          "isArchived",
+          "createdAt",
+          "updatedAt",
+          "lastEdited"
+        ]
+      },
+      "NotesListSchema": {
+        "type": "object",
+        "properties": {
+          "notes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NoteSchema"
+            },
+            "description": "Array of notes"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Total number of notes"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Current page number"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Items per page"
+          }
+        },
+        "required": [
+          "notes",
+          "total",
+          "page",
+          "limit"
+        ]
+      },
+      "NoteSearchSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "nullable": true,
+            "description": "Search query"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "description": "Filter by tags"
+          },
+          "isArchived": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "Filter by archive status"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "nullable": true,
+            "default": 1,
+            "description": "Page number"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "nullable": true,
+            "default": 20,
+            "description": "Items per page"
+          }
+        }
+      },
+      "TagSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique tag identifier"
+          },
+          "name": {
+            "type": "string",
+            "description": "Tag name"
+          },
+          "userId": {
+            "type": "string",
+            "description": "Owner user ID"
+          },
+          "noteCount": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of notes with this tag"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Creation timestamp"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "userId",
+          "noteCount",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "TagsListSchema": {
+        "type": "object",
+        "properties": {
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TagSchema"
+            },
+            "description": "Array of tags"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Total number of tags"
+          }
+        },
+        "required": [
+          "tags",
+          "total"
+        ]
+      },
+      "HeaderBlockData": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Header text content"
+          },
+          "level": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6,
+            "description": "Header level (1-6)"
+          }
+        },
+        "required": [
+          "text",
+          "level"
+        ]
+      },
+      "ParagraphBlockData": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Paragraph text content"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "ListBlockData": {
+        "type": "object",
+        "properties": {
+          "style": {
+            "type": "string",
+            "enum": [
+              "ordered",
+              "unordered"
+            ],
+            "description": "List style"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List items"
+          }
+        },
+        "required": [
+          "style",
+          "items"
+        ]
+      },
+      "QuoteBlockData": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Quote text content"
+          },
+          "caption": {
+            "type": "string",
+            "nullable": true,
+            "description": "Quote caption/author"
+          },
+          "alignment": {
+            "type": "string",
+            "enum": [
+              "left",
+              "center"
+            ],
+            "nullable": true,
+            "description": "Quote alignment"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "DelimiterBlockData": {
+        "type": "object",
+        "properties": {},
+        "description": "Delimiter block (no data)"
+      },
+      "BlockData": {
+        "oneOf": [
+          {
+            "type": "object"
+          },
+          {
+            "type": "object"
+          },
+          {
+            "type": "object"
+          },
+          {
+            "type": "object"
+          },
+          {
+            "type": "object"
+          }
+        ]
+      },
+      "EditorBlock": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique block identifier"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "header",
+              "paragraph",
+              "list",
+              "quote",
+              "delimiter"
+            ],
+            "description": "Block type"
+          },
+          "data": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BlockDataSchema"
+              }
+            ],
+            "description": "Block-specific data"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "data"
+        ]
+      },
+      "EditorContent": {
+        "type": "object",
+        "properties": {
+          "time": {
+            "type": "number",
+            "description": "Content creation/modification timestamp"
+          },
+          "blocks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EditorBlockSchema"
+            },
+            "description": "Array of content blocks"
+          },
+          "version": {
+            "type": "string",
+            "description": "Editor.js version"
+          }
+        },
+        "required": [
+          "time",
+          "blocks",
+          "version"
+        ]
+      },
+      "CreateNote": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Note title"
+          },
+          "content": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EditorContentSchema"
+              }
+            ],
+            "description": "Note content in Editor.js format"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "description": "Array of tag names"
+          }
+        },
+        "required": [
+          "title",
+          "content"
+        ]
+      },
+      "UpdateNote": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "nullable": true,
+            "description": "Note title"
+          },
+          "content": {
+            "type": "object",
+            "description": "Note content in Editor.js format"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "description": "Array of tag names"
+          },
+          "isArchived": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "Archive status"
+          }
+        }
+      },
+      "Note": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique note identifier"
+          },
+          "userId": {
+            "type": "string",
+            "description": "Owner user ID"
+          },
+          "title": {
+            "type": "string",
+            "description": "Note title"
+          },
+          "content": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EditorContentSchema"
+              }
+            ],
+            "description": "Note content in Editor.js format"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of tag names"
+          },
+          "isArchived": {
+            "type": "boolean",
+            "description": "Archive status"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Creation timestamp"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update timestamp"
+          },
+          "lastEdited": {
+            "type": "string",
+            "description": "Last edit timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "title",
+          "content",
+          "tags",
+          "isArchived",
+          "createdAt",
+          "updatedAt",
+          "lastEdited"
+        ]
+      },
+      "NotesList": {
+        "type": "object",
+        "properties": {
+          "notes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NoteSchema"
+            },
+            "description": "Array of notes"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Total number of notes"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Current page number"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Items per page"
+          }
+        },
+        "required": [
+          "notes",
+          "total",
+          "page",
+          "limit"
+        ]
+      },
+      "NoteSearch": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "nullable": true,
+            "description": "Search query"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "description": "Filter by tags"
+          },
+          "isArchived": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "Filter by archive status"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "nullable": true,
+            "default": 1,
+            "description": "Page number"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "nullable": true,
+            "default": 20,
+            "description": "Items per page"
+          }
+        }
+      },
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique tag identifier"
+          },
+          "name": {
+            "type": "string",
+            "description": "Tag name"
+          },
+          "userId": {
+            "type": "string",
+            "description": "Owner user ID"
+          },
+          "noteCount": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of notes with this tag"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Creation timestamp"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "userId",
+          "noteCount",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "TagsList": {
+        "type": "object",
+        "properties": {
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TagSchema"
+            },
+            "description": "Array of tags"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Total number of tags"
+          }
+        },
+        "required": [
+          "tags",
+          "total"
+        ]
+      },
+      "NoteResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Response message"
+          },
+          "note": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "message",
+          "note",
+          "note"
+        ]
+      },
+      "NotesResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Response message"
+          },
+          "data": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "message",
+          "data",
+          "data"
+        ]
+      },
+      "TagsResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Response message"
+          },
+          "data": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "message",
+          "data",
+          "data"
+        ]
       }
     },
     "responses": {
@@ -594,8 +1588,8 @@
     "/health": {
       "get": {
         "operationId": "get-health",
-        "summary": "@response HealthResponseSchema:Service healthy",
-        "description": "",
+        "summary": "Health Check for Database Connection",
+        "description": "This API would ping the database and return the number of users and notes.",
         "tags": [
           "Health"
         ],
@@ -668,8 +1662,8 @@
     "/login": {
       "post": {
         "operationId": "post-login",
-        "summary": "@body LoginRequestSchema",
-        "description": "",
+        "summary": "Login",
+        "description": "Login with email and password",
         "tags": [
           "Login"
         ],
@@ -744,11 +1738,274 @@
         }
       }
     },
+    "/notes": {
+      "get": {
+        "operationId": "get-notes",
+        "summary": "Get notes",
+        "description": "Get notes with optional filters",
+        "tags": [
+          "Notes"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Notes retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "description": "Response message"
+                    },
+                    "data": {
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "data",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post-notes",
+        "summary": "Create note",
+        "description": "Create a new note with title, content, and optional tags",
+        "tags": [
+          "Notes"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Note title"
+                  },
+                  "content": {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/EditorContentSchema"
+                      }
+                    ],
+                    "description": "Note content in Editor.js format"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "nullable": true,
+                    "description": "Array of tag names"
+                  }
+                },
+                "required": [
+                  "title",
+                  "content"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Note created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "description": "Response message"
+                    },
+                    "note": {
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "note",
+                    "note"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/notes/{id}": {
+      "get": {
+        "operationId": "get-notes-{id}",
+        "summary": "Get note by ID",
+        "description": "Retrieve a specific note by its ID with tags",
+        "tags": [
+          "Notes"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Note retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "description": "Response message"
+                    },
+                    "note": {
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "note",
+                    "note"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "put": {
+        "operationId": "put-notes-{id}",
+        "summary": "Update note",
+        "description": "Update an existing note's title, content, tags, or archive status",
+        "tags": [
+          "Notes"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "nullable": true,
+                    "description": "Note title"
+                  },
+                  "content": {
+                    "type": "object",
+                    "description": "Note content in Editor.js format"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "nullable": true,
+                    "description": "Array of tag names"
+                  },
+                  "isArchived": {
+                    "type": "boolean",
+                    "nullable": true,
+                    "description": "Archive status"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Note updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "description": "Response message"
+                    },
+                    "note": {
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "note",
+                    "note"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete-notes-{id}",
+        "summary": "Delete note",
+        "description": "Permanently delete a note and its associated tags",
+        "tags": [
+          "Notes"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Note deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
     "/register": {
       "post": {
         "operationId": "post-register",
-        "summary": "@body RegisterRequestSchema",
-        "description": "",
+        "summary": "Register",
+        "description": "Register a new user with email and password",
         "tags": [
           "Register"
         ],
@@ -828,6 +2085,49 @@
         }
       }
     },
+    "/tags": {
+      "get": {
+        "operationId": "get-tags",
+        "summary": "Get tags",
+        "description": "Retrieve all user tags with note counts and usage statistics",
+        "tags": [
+          "Tags"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Tags retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "description": "Response message"
+                    },
+                    "data": {
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "data",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
     "/test-auth": {
       "get": {
         "operationId": "get-test-auth",
@@ -877,6 +2177,74 @@
           },
           "403": {
             "$ref": "#/components/responses/403"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/verify-api-docs-auth": {
+      "post": {
+        "operationId": "post-verify-api-docs-auth",
+        "summary": "Verify API Docs Authentication",
+        "description": "Verify API docs authentication with username and password",
+        "tags": [
+          "Verify-api-docs-auth"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "API docs username"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "API docs password"
+                  }
+                },
+                "required": [
+                  "username",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authentication successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Authentication success status"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Response message"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
           },
           "500": {
             "$ref": "#/components/responses/500"

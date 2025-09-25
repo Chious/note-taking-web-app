@@ -1,10 +1,9 @@
 "use client";
 
-import Editor from "@/components/editor";
 import { NoteDialog } from "@/components/note-dialog";
+import { NoteEditor, type NoteEditorRef } from "@/components/note-editor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import data from "@/data/data.json";
 import {
   useNoteSlug,
   useTagFilter,
@@ -12,9 +11,23 @@ import {
   useNavParam,
 } from "@/hooks/use-params";
 import { UTFToLocalTime } from "@/lib/time";
-import { Calendar, Tag, Search, X, Archive, ArrowLeft } from "lucide-react";
-import { useMemo, useEffect } from "react";
+import { Tag, Search, X, ArrowLeft, Trash, Archive } from "lucide-react";
+import { useMemo, useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useNotes, extractTextFromEditorContent } from "@/hooks/use-notes";
+import { useTags } from "@/hooks/use-tags";
+import { type Note } from "@/schemas/notes";
+
+const templateNote: Partial<Note> = {
+  title: "New Note",
+  content: {
+    time: Date.now(),
+    blocks: [],
+    version: "1.0.0",
+  },
+  isArchived: false,
+  tags: [],
+};
 
 export default function NotesPage() {
   const { slug, setSlug } = useNoteSlug();
@@ -31,116 +44,160 @@ export default function NotesPage() {
     }
   }, [nav, router, setNav]);
 
+  const {
+    data: noteData,
+    isLoading,
+    error,
+  } = useNotes({
+    page: 1,
+    limit: 100,
+  });
+
   // Filter notes based on current filters
   const filteredNotes = useMemo(() => {
-    return data.notes.filter((item) => {
+    return noteData?.data.notes.filter((item) => {
       // Tag filter
       const tagMatch = !tag || item.tags.includes(tag);
 
-      // Search filter (title and content)
+      // Search filter (title, content, and tags)
       const searchMatch =
         !query ||
         item.title.toLowerCase().includes(query.toLowerCase()) ||
-        item.content.toLowerCase().includes(query.toLowerCase()) ||
-        item.tags.some((t) => t.toLowerCase().includes(query.toLowerCase()));
+        item.tags.some((t) => t.toLowerCase().includes(query.toLowerCase())) ||
+        extractTextFromEditorContent(item.content)
+          .toLowerCase()
+          .includes(query.toLowerCase());
 
       // Navigation filter (archived status)
       const navMatch = nav === "archived" ? item.isArchived : !item.isArchived;
 
       return tagMatch && searchMatch && navMatch;
     });
-  }, [tag, query, nav]);
+  }, [tag, query, nav, noteData]);
 
   // Get all unique tags
-  const allTags = useMemo(() => {
-    const tagSet = new Set<string>();
-    data.notes.forEach((note) => {
-      note.tags.forEach((tag) => tagSet.add(tag));
-    });
-    return Array.from(tagSet).sort();
-  }, []);
+  const { data: tagsData } = useTags();
 
   // Calculate tag counts
   const tagCounts = useMemo(() => {
     const counts = new Map<string, number>();
-    data.notes.forEach((note) => {
+    noteData?.data.notes.forEach((note) => {
       note.tags.forEach((tagName) => {
         counts.set(tagName, (counts.get(tagName) || 0) + 1);
       });
     });
     return counts;
-  }, []);
+  }, [noteData]);
 
-  const displayNote = data.notes.find((item) => item.slug === slug);
+  const [isCreatingNote, setIsCreatingNote] = useState(false);
+
+  const handleCreateNote = () => {
+    setSlug(null); // Clear any selected note
+    setDisplayNote(templateNote);
+    setIsCreatingNote(true); // Set creating note state
+  };
+
+  const handleDeleteSuccess = () => {
+    setSlug(null);
+    setIsCreatingNote(false);
+    setDisplayNote(null);
+  };
+
+  const handleArchiveSuccess = () => {
+    setSlug(null);
+    setIsCreatingNote(false);
+    setDisplayNote(null);
+  };
+
+  const [displayNote, setDisplayNote] = useState<Note | Partial<Note> | null>(
+    null
+  );
+
+  const noteEditorRef = useRef<NoteEditorRef>(null);
 
   // Mobile view: Show different content based on navigation state
   const renderMobileView = () => {
-    // Show note editor on mobile when note is selected
-    if (slug && displayNote) {
+    // Show note editor on mobile when note is selected or creating new note
+    if (!nav && ((slug && displayNote) || (isCreatingNote && displayNote))) {
       return (
         <div className="flex flex-col h-full">
-          {/* Mobile note header */}
           <div className="flex items-center gap-3 p-4 border-b">
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setSlug(null)}
+              onClick={() => {
+                setSlug(null);
+                setIsCreatingNote(false);
+                setDisplayNote(null);
+              }}
               className="p-2"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-4 h-4 text-gray-500" />
             </Button>
-            <h1 className="text-lg font-semibold truncate flex-1">
-              {displayNote.title}
+            <h1 className="text-lg font-semibold truncate flex-1 text-gray-500">
+              Go Back
             </h1>
-          </div>
+            {displayNote?.id && (
+              <NoteDialog
+                triggerText=""
+                triggerVariant="ghost"
+                triggerClassName="p-2 text-gray-500"
+                type="deleteNote"
+                noteId={displayNote.id}
+                onSuccess={handleDeleteSuccess}
+              >
+                <Trash className="w-4 h-4" />
+              </NoteDialog>
+            )}
 
-          {/* Mobile note content */}
-          <div className="flex-1 p-4 space-y-4 overflow-y-auto">
-            <div className="text-muted-foreground flex items-center gap-2 flex-wrap">
-              <Tag className="w-4 h-4" />
-              <span>Tags:</span>
-              {displayNote.tags.map((tagName, index) => (
-                <Button
-                  key={index}
-                  variant="secondary"
-                  size="sm"
-                  className={`h-7 px-3 text-xs ${
-                    tag === tagName
-                      ? "bg-blue-500 text-white hover:bg-blue-600"
-                      : "bg-secondary text-secondary-foreground hover:bg-muted"
-                  }`}
-                  onClick={() => setTag(tag === tagName ? null : tagName)}
-                >
-                  {tagName}
-                </Button>
-              ))}
-            </div>
-
-            <div className="flex items-center justify-between w-full text-xs text-muted-foreground">
-              <div className="text-muted-foreground flex items-center gap-2">
+            {displayNote?.id && (
+              <NoteDialog
+                triggerText=""
+                triggerVariant="ghost"
+                triggerClassName="p-2 text-gray-500"
+                type="archiveNote"
+                noteId={displayNote.id}
+                onSuccess={handleArchiveSuccess}
+              >
                 <Archive className="w-4 h-4" />
-                <span>Status</span>
-                <select
-                  className="bg-white border border-border rounded px-2 py-1 text-foreground text-xs appearance-none cursor-pointer hover:bg-muted focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-                  value={displayNote.isArchived ? "archived" : "active"}
-                  onChange={() => {}}
-                >
-                  <option value="active">Active</option>
-                  <option value="archived">Archived</option>
-                </select>
-              </div>
-            </div>
+              </NoteDialog>
+            )}
 
-            <div className="flex items-center justify-between w-full text-xs text-muted-foreground">
-              <div className="text-muted-foreground flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                <span>Last edited</span>
-                <span>{UTFToLocalTime(displayNote.lastEdited || "")}</span>
-              </div>
-            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-gray-500"
+              onClick={() => {
+                setSlug(null);
+                setIsCreatingNote(false);
+                setDisplayNote(null);
+              }}
+            >
+              Cancel
+            </Button>
 
-            <div className="border border-solid border-border w-full" />
-            <Editor editorId="mobile-editor" />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-gray-500"
+              onClick={() => {
+                noteEditorRef.current?.save();
+              }}
+            >
+              Save Note
+            </Button>
+          </div>
+          <div className="flex-1 p-4">
+            <NoteEditor
+              ref={noteEditorRef}
+              note={displayNote}
+              onCancel={() => {
+                setSlug(null);
+                setIsCreatingNote(false);
+                setDisplayNote(null);
+              }}
+              editorId={`mobile-shared-editor`}
+            />
           </div>
         </div>
       );
@@ -163,32 +220,32 @@ export default function NotesPage() {
           </div>
 
           <div className="space-y-2">
-            {allTags.length === 0 ? (
+            {tagsData?.data.tags.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
                 <Tag className="w-8 h-8 mx-auto mb-2 opacity-50" />
                 <p>No tags found</p>
               </div>
             ) : (
-              allTags.map((tagName) => (
+              tagsData?.data.tags.map((tagItem) => (
                 <Button
-                  key={tagName}
+                  key={tagItem.name}
                   variant="ghost"
                   className={`w-full flex items-center justify-between p-4 h-auto text-left ${
-                    tag === tagName
+                    tag === tagItem.name
                       ? "bg-blue-50 text-blue-700 border-blue-200"
                       : "hover:bg-muted"
                   }`}
                   onClick={() => {
-                    setTag(tagName);
+                    setTag(tagItem.name);
                     setNav(null);
                   }}
                 >
                   <div className="flex items-center gap-3">
                     <Tag className="w-4 h-4" />
-                    <span className="font-medium">{tagName}</span>
+                    <span className="font-medium">{tagItem.name}</span>
                   </div>
                   <span className="text-xs bg-muted px-2 py-1 rounded-full">
-                    {tagCounts.get(tagName) || 0}
+                    {tagCounts.get(tagItem.name) || 0}
                   </span>
                 </Button>
               ))
@@ -229,23 +286,23 @@ export default function NotesPage() {
 
           {query && (
             <div className="text-sm text-muted-foreground">
-              Showing {filteredNotes.length} notes
+              Showing {filteredNotes?.length} notes
             </div>
           )}
 
           <div className="space-y-2">
-            {filteredNotes.length === 0 ? (
+            {filteredNotes?.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
                 <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
                 <p>No notes found matching your search</p>
               </div>
             ) : (
-              filteredNotes.map((item) => (
+              filteredNotes?.map((item) => (
                 <Button
-                  key={item.slug}
+                  key={item.id}
                   variant="ghost"
                   className="w-full h-auto flex flex-col items-start gap-2 p-4 text-left border border-border hover:bg-muted"
-                  onClick={() => setSlug(item.slug)}
+                  onClick={() => setSlug(item.id)}
                 >
                   <h3 className="font-semibold text-base">{item.title}</h3>
                   <div className="flex gap-1 flex-wrap">
@@ -272,19 +329,28 @@ export default function NotesPage() {
     // Default mobile notes list view
     return (
       <div className="p-4 space-y-4">
-        <Button className="w-full bg-blue-500 text-white hover:bg-blue-600">
+        <Button
+          className="w-full bg-blue-500 text-white hover:bg-blue-600"
+          onClick={handleCreateNote}
+        >
           Create Note
         </Button>
 
         {(tag || query || nav) && (
           <div className="text-sm text-muted-foreground">
-            Showing {filteredNotes.length} notes
-            {(tag || query || nav) && ` (of ${data.notes.length} total)`}
+            Showing {filteredNotes?.length} notes
+            {(tag || query || nav) &&
+              ` (of ${noteData?.data.notes.length || 0} total)`}
           </div>
         )}
 
         <div className="space-y-2">
-          {filteredNotes.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center text-muted-foreground py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto mb-2"></div>
+              <p>Loading notes...</p>
+            </div>
+          ) : filteredNotes?.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
               <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
               <p>No notes found matching your criteria</p>
@@ -295,12 +361,15 @@ export default function NotesPage() {
               )}
             </div>
           ) : (
-            filteredNotes.map((item) => (
+            filteredNotes?.map((item) => (
               <Button
-                key={item.slug}
+                key={item.id}
                 variant="ghost"
                 className="w-full h-auto flex flex-col items-start gap-2 p-4 text-left border border-border hover:bg-muted"
-                onClick={() => setSlug(item.slug)}
+                onClick={() => {
+                  setSlug(item.id);
+                  setDisplayNote(item);
+                }}
               >
                 <h3 className="font-semibold text-base">{item.title}</h3>
                 <div className="flex gap-1 flex-wrap">
@@ -332,26 +401,67 @@ export default function NotesPage() {
     );
   };
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <section className="flex h-full w-full items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading notes...</p>
+        </div>
+      </section>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <section className="flex h-full w-full items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 mb-4">
+            <Search className="w-8 h-8 mx-auto mb-2" />
+          </div>
+          <h2 className="text-lg font-semibold mb-2">Failed to load notes</h2>
+          <p className="text-muted-foreground mb-4">
+            {error instanceof Error
+              ? error.message
+              : "An unexpected error occurred"}
+          </p>
+          <Button onClick={() => window.location.reload()}>Try Again</Button>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="flex h-full w-full">
       {/* Desktop Layout */}
       <nav className="flex-col gap-4 p-4 w-1/4 overflow-y-scroll max-h-full hidden md:flex lg:flex">
         {/* Create Note Button */}
-        <Button className="bg-blue-500 text-white hover:bg-blue-600">
+        <Button
+          className="bg-blue-500 text-white hover:bg-blue-600"
+          onClick={handleCreateNote}
+        >
           Create Note
         </Button>
 
         {/* Filter Results Count */}
         {(tag || query || nav) && (
           <div className="text-sm text-muted-foreground">
-            Showing {filteredNotes.length} notes
-            {(tag || query || nav) && ` (of ${data.notes.length} total)`}
+            Showing {filteredNotes?.length} notes
+            {(tag || query || nav) &&
+              ` (of ${noteData?.data.notes.length || 0} total)`}
           </div>
         )}
 
         {/* Notes List */}
         <div className="space-y-2">
-          {filteredNotes.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center text-muted-foreground py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto mb-2"></div>
+              <p>Loading notes...</p>
+            </div>
+          ) : filteredNotes?.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
               <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
               <p>No notes found matching your criteria</p>
@@ -362,16 +472,19 @@ export default function NotesPage() {
               )}
             </div>
           ) : (
-            filteredNotes.map((item) => (
+            filteredNotes?.map((item) => (
               <Button
-                key={item.slug}
+                key={item.id}
                 variant="ghost"
                 className={`w-full h-fit flex items-start flex-col gap-3 justify-between text-left border border-solid p-4 whitespace-normal ${
-                  slug === item.slug
+                  slug === item.id
                     ? "bg-gray-200 text-black border-none"
                     : "bg-secondary text-secondary-foreground hover:bg-muted border-border"
                 }`}
-                onClick={() => setSlug(item.slug)}
+                onClick={() => {
+                  setSlug(item.id);
+                  setDisplayNote(item);
+                }}
               >
                 <h2 className="text-lg font-bold break-words">{item.title}</h2>
                 <span className="text-sm flex gap-2 flex-wrap">
@@ -409,59 +522,18 @@ export default function NotesPage() {
       {/* Desktop Main Content */}
       <section className="hidden md:flex p-4 flex-1 h-full item-start justify-start flex-col gap-4">
         {displayNote ? (
-          <>
-            <div className="flex items-start justify-between">
-              <h1 className="text-2xl font-bold text-foreground flex-1">
-                {displayNote.title}
-              </h1>
-            </div>
-
-            <div className="text-muted-foreground flex items-center gap-2 flex-wrap">
-              <Tag className="w-4 h-4" />
-              <span>Tags:</span>
-              {displayNote.tags.map((tagName, index) => (
-                <Button
-                  key={index}
-                  variant="secondary"
-                  size="sm"
-                  className={`h-7 px-3 text-xs ${
-                    tag === tagName
-                      ? "bg-blue-500 text-white hover:bg-blue-600"
-                      : "bg-secondary text-secondary-foreground hover:bg-muted"
-                  }`}
-                  onClick={() => setTag(tag === tagName ? null : tagName)}
-                >
-                  {tagName}
-                </Button>
-              ))}
-            </div>
-
-            <div className="flex items-center justify-between w-full text-xs text-muted-foreground">
-              <div className="text-muted-foreground flex items-center gap-2">
-                <Archive className="w-4 h-4" />
-                <span>Status</span>
-                <select
-                  className="bg-white border border-border rounded px-2 py-1 text-foreground text-xs appearance-none cursor-pointer hover:bg-muted focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 border-none"
-                  value={displayNote.isArchived ? "archived" : "active"}
-                  onChange={() => {}}
-                >
-                  <option value="active">Active</option>
-                  <option value="archived">Archived</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between w-full text-xs text-muted-foreground">
-              <div className="text-muted-foreground flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                <span>Last edited</span>
-                <span>{UTFToLocalTime(displayNote.lastEdited || "")}</span>
-              </div>
-            </div>
-
-            <div className="border border-solid border-border w-full" />
-            <Editor editorId="desktop-editor" />
-          </>
+          <div className="flex flex-col h-full">
+            <NoteEditor
+              ref={noteEditorRef}
+              note={displayNote}
+              onCancel={() => {
+                setSlug(null);
+                setIsCreatingNote(false);
+                setDisplayNote(null);
+              }}
+              editorId={`desktop-shared-editor`}
+            />
+          </div>
         ) : (
           <div className="flex-1 flex items-center justify-center text-center">
             <div className="text-muted-foreground">
@@ -470,7 +542,7 @@ export default function NotesPage() {
               <p>
                 Choose a note from the left sidebar to start reading or editing
               </p>
-              {(tag || query || nav) && filteredNotes.length === 0 && (
+              {(tag || query || nav) && filteredNotes?.length === 0 && (
                 <div className="mt-4">
                   <p className="text-sm mb-2">
                     No notes match your current filters
@@ -487,8 +559,25 @@ export default function NotesPage() {
 
       {/* Desktop Right Sidebar */}
       <nav className="flex-col gap-4 p-4 w-1/4 hidden md:flex lg:flex">
-        <NoteDialog triggerText="Archive Note" type="archiveNote" />
-        <NoteDialog triggerText="Delete Note" type="deleteNote" />
+        {displayNote && (
+          <>
+            <NoteDialog
+              triggerText="Archive Note"
+              type="archiveNote"
+              noteId={displayNote.id || ""}
+              onSuccess={() => setSlug(null)}
+            />
+            <NoteDialog
+              triggerText="Delete Note"
+              type="deleteNote"
+              noteId={displayNote.id || ""}
+              onSuccess={() => {
+                setSlug(null);
+                setDisplayNote(null);
+              }}
+            />
+          </>
+        )}
       </nav>
     </section>
   );
