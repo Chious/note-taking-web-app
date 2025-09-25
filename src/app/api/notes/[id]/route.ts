@@ -54,7 +54,7 @@ export async function GET(
 
     const noteWithTags = {
       ...note,
-      content: note.content,
+      content: typeof note.content === 'string' ? JSON.parse(note.content) : note.content,
       tags: noteTags_result.map((tag) => tag.name),
     };
 
@@ -112,6 +112,21 @@ export async function PUT(
       console.log("Validated data:", JSON.stringify(validatedData, null, 2));
     } catch (validationError) {
       console.error("Validation error:", validationError);
+      
+      // Handle Zod validation errors specifically
+      if (validationError instanceof z.ZodError) {
+        return NextResponse.json(
+          {
+            error: "Validation failed",
+            details: validationError.issues.map((err) => ({
+              field: err.path.join("."),
+              message: err.message,
+            })),
+          },
+          { status: 400 }
+        );
+      }
+      
       return NextResponse.json(
         {
           error: "Invalid request data",
