@@ -214,7 +214,8 @@ export function NoteDialog({
       confirmClassName={config.confirmClassName}
       isLoading={isLoading}
       onConfirm={handleConfirm}
-      children={children}
-    />
+    >
+      {children}
+    </ConfirmationDialog>
   );
 }
