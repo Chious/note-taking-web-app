@@ -2,6 +2,7 @@
 
 import { ThemeProvider as NextThemeProvider } from "next-themes";
 import { useEffect, useState } from "react";
+import "@radix-ui/themes/styles.css";
 
 export function ThemeProvider({
   children,

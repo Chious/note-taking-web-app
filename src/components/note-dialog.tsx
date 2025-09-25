@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogClose,
@@ -8,45 +8,59 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { Trash, Archive } from 'lucide-react';
-import { useDeleteNote, useUpdateNote } from '@/hooks/use-notes';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+} from "@/components/ui/dialog";
+import { Trash, Archive } from "lucide-react";
+import { useDeleteNote, useUpdateNote } from "@/hooks/use-notes";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 // Generic Confirmation Dialog Component
 interface ConfirmationDialogProps {
   triggerText: string;
-  triggerVariant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
+  triggerVariant?:
+    | "default"
+    | "destructive"
+    | "outline"
+    | "secondary"
+    | "ghost"
+    | "link";
   triggerClassName?: string;
   icon?: React.ReactNode;
   title: string;
   description: string;
   confirmText?: string;
-  confirmVariant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
+  confirmVariant?:
+    | "default"
+    | "destructive"
+    | "outline"
+    | "secondary"
+    | "ghost"
+    | "link";
   confirmClassName?: string;
   cancelText?: string;
   isLoading?: boolean;
   onConfirm: () => void | Promise<void>;
   onCancel?: () => void;
   disabled?: boolean;
+  children?: React.ReactNode;
 }
 
 export function ConfirmationDialog({
   triggerText,
-  triggerVariant = 'outline',
+  triggerVariant = "outline",
   triggerClassName,
   icon,
   title,
   description,
-  confirmText = 'Confirm',
-  confirmVariant = 'default',
+  confirmText = "Confirm",
+  confirmVariant = "default",
   confirmClassName,
-  cancelText = 'Cancel',
+  cancelText = "Cancel",
   isLoading = false,
   onConfirm,
   onCancel,
   disabled = false,
+  children,
 }: ConfirmationDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -55,7 +69,7 @@ export function ConfirmationDialog({
       await onConfirm();
       setIsOpen(false);
     } catch (error) {
-      console.error('Confirmation action failed:', error);
+      console.error("Confirmation action failed:", error);
       // Keep dialog open on error so user can retry
     }
   };
@@ -68,13 +82,17 @@ export function ConfirmationDialog({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button 
-          variant={triggerVariant} 
+        <Button
+          variant={triggerVariant}
           className={triggerClassName}
           disabled={disabled}
         >
-          {icon && <span className="mr-2">{icon}</span>}
-          {triggerText}
+          {children || (
+            <>
+              {icon && <span className="mr-2">{icon}</span>}
+              {triggerText}
+            </>
+          )}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px] rounded-lg">
@@ -91,7 +109,11 @@ export function ConfirmationDialog({
         </DialogHeader>
         <DialogFooter>
           <DialogClose asChild>
-            <Button variant="outline" disabled={isLoading} onClick={handleCancel}>
+            <Button
+              variant="outline"
+              disabled={isLoading}
+              onClick={handleCancel}
+            >
               {cancelText}
             </Button>
           </DialogClose>
@@ -101,7 +123,7 @@ export function ConfirmationDialog({
             disabled={isLoading}
             className={confirmClassName}
           >
-            {isLoading ? 'Processing...' : confirmText}
+            {isLoading ? "Processing..." : confirmText}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -110,24 +132,32 @@ export function ConfirmationDialog({
 }
 
 // Note-specific Dialog Component (wrapper around ConfirmationDialog)
-type NoteDialogType = 'deleteNote' | 'archiveNote';
+type NoteDialogType = "deleteNote" | "archiveNote";
 
 interface NoteDialogProps {
   triggerText: string;
-  triggerVariant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
+  triggerVariant?:
+    | "default"
+    | "destructive"
+    | "outline"
+    | "secondary"
+    | "ghost"
+    | "link";
   triggerClassName?: string;
   type: NoteDialogType;
   noteId: string;
   onSuccess?: () => void;
+  children?: React.ReactNode;
 }
 
 export function NoteDialog({
   triggerText,
-  triggerVariant = 'outline',
+  triggerVariant = "outline",
   triggerClassName,
   type,
   noteId,
   onSuccess,
+  children,
 }: NoteDialogProps) {
   const router = useRouter();
   const deleteNoteMutation = useDeleteNote();
@@ -136,30 +166,33 @@ export function NoteDialog({
   const dialogConfig = {
     deleteNote: {
       icon: <Trash />,
-      title: 'Delete Note',
-      description: 'Are you sure you want to permanently delete this note? This action cannot be undone.',
-      confirmText: 'Delete',
-      confirmClassName: 'bg-red-500 text-white hover:bg-red-600',
-      confirmVariant: 'destructive' as const,
+      title: "Delete Note",
+      description:
+        "Are you sure you want to permanently delete this note? This action cannot be undone.",
+      confirmText: "Delete",
+      confirmClassName: "bg-red-500 text-white hover:bg-red-600",
+      confirmVariant: "destructive" as const,
     },
     archiveNote: {
       icon: <Archive />,
-      title: 'Archive Note',
-      description: 'Are you sure you want to archive this note? You can find it in the Archived Notes section and restore it anytime.',
-      confirmText: 'Archive',
-      confirmClassName: 'bg-blue-500 text-white hover:bg-blue-600',
-      confirmVariant: 'default' as const,
+      title: "Archive Note",
+      description:
+        "Are you sure you want to archive this note? You can find it in the Archived Notes section and restore it anytime.",
+      confirmText: "Archive",
+      confirmClassName: "bg-blue-500 text-white hover:bg-blue-600",
+      confirmVariant: "default" as const,
     },
   };
 
   const config = dialogConfig[type];
-  const isLoading = deleteNoteMutation.isPending || updateNoteMutation.isPending;
+  const isLoading =
+    deleteNoteMutation.isPending || updateNoteMutation.isPending;
 
   const handleConfirm = async () => {
-    if (type === 'deleteNote') {
+    if (type === "deleteNote") {
       await deleteNoteMutation.mutateAsync(noteId);
-      router.push('/dashboard');
-    } else if (type === 'archiveNote') {
+      router.push("/dashboard");
+    } else if (type === "archiveNote") {
       await updateNoteMutation.mutateAsync({
         id: noteId,
         data: { isArchived: true },
@@ -181,6 +214,7 @@ export function NoteDialog({
       confirmClassName={config.confirmClassName}
       isLoading={isLoading}
       onConfirm={handleConfirm}
+      children={children}
     />
   );
 }

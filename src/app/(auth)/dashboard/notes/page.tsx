@@ -1,10 +1,7 @@
 "use client";
 
-// TODO: onSave() Logic after saved;
-// TODO  remove useEffect, use props to deal with data;
-
 import { NoteDialog } from "@/components/note-dialog";
-import { NoteEditor } from "@/components/note-editor";
+import { NoteEditor, type NoteEditorRef } from "@/components/note-editor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -14,8 +11,8 @@ import {
   useNavParam,
 } from "@/hooks/use-params";
 import { UTFToLocalTime } from "@/lib/time";
-import { Tag, Search, X, ArrowLeft } from "lucide-react";
-import { useMemo, useEffect, useState } from "react";
+import { Tag, Search, X, ArrowLeft, Trash, Archive } from "lucide-react";
+import { useMemo, useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useNotes, extractTextFromEditorContent } from "@/hooks/use-notes";
 import { useTags } from "@/hooks/use-tags";
@@ -100,9 +97,23 @@ export default function NotesPage() {
     setIsCreatingNote(true); // Set creating note state
   };
 
+  const handleDeleteSuccess = () => {
+    setSlug(null);
+    setIsCreatingNote(false);
+    setDisplayNote(null);
+  };
+
+  const handleArchiveSuccess = () => {
+    setSlug(null);
+    setIsCreatingNote(false);
+    setDisplayNote(null);
+  };
+
   const [displayNote, setDisplayNote] = useState<Note | Partial<Note> | null>(
     null
   );
+
+  const noteEditorRef = useRef<NoteEditorRef>(null);
 
   // Mobile view: Show different content based on navigation state
   const renderMobileView = () => {
@@ -121,14 +132,64 @@ export default function NotesPage() {
               }}
               className="p-2"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-4 h-4 text-gray-500" />
             </Button>
-            <h1 className="text-lg font-semibold truncate flex-1">
-              {displayNote.title}
+            <h1 className="text-lg font-semibold truncate flex-1 text-gray-500">
+              Go Back
             </h1>
+            {displayNote?.id && (
+              <NoteDialog
+                triggerText=""
+                triggerVariant="ghost"
+                triggerClassName="p-2 text-gray-500"
+                type="deleteNote"
+                noteId={displayNote.id}
+                onSuccess={handleDeleteSuccess}
+              >
+                <Trash className="w-4 h-4" />
+              </NoteDialog>
+            )}
+
+            {displayNote?.id && (
+              <NoteDialog
+                triggerText=""
+                triggerVariant="ghost"
+                triggerClassName="p-2 text-gray-500"
+                type="archiveNote"
+                noteId={displayNote.id}
+                onSuccess={handleArchiveSuccess}
+              >
+                <Archive className="w-4 h-4" />
+              </NoteDialog>
+            )}
+
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-gray-500"
+              onClick={() => {
+                setSlug(null);
+                setIsCreatingNote(false);
+                setDisplayNote(null);
+              }}
+            >
+              Cancel
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-gray-500"
+              onClick={() => {
+                noteEditorRef.current?.save();
+              }}
+            >
+              Save Note
+            </Button>
           </div>
           <div className="flex-1 p-4">
             <NoteEditor
+              ref={noteEditorRef}
               note={displayNote}
               onCancel={() => {
                 setSlug(null);
@@ -463,6 +524,7 @@ export default function NotesPage() {
         {displayNote ? (
           <div className="flex flex-col h-full">
             <NoteEditor
+              ref={noteEditorRef}
               note={displayNote}
               onCancel={() => {
                 setSlug(null);
@@ -509,7 +571,10 @@ export default function NotesPage() {
               triggerText="Delete Note"
               type="deleteNote"
               noteId={displayNote.id || ""}
-              onSuccess={() => setSlug(null)}
+              onSuccess={() => {
+                setSlug(null);
+                setDisplayNote(null);
+              }}
             />
           </>
         )}
