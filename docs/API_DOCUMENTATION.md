@@ -71,7 +71,7 @@ graph TB
 
     subgraph "Data Layer"
         DB[(Cloudflare D1<br/>SQLite Database)]
-        Prisma[Prisma ORM<br/>Database Adapter]
+        Drizzle[Drizzle ORM<br/>Database Adapter]
     end
 
     subgraph "Documentation"
@@ -92,10 +92,10 @@ graph TB
     Validation --> NoteLogic
     Validation --> TagLogic
 
-    NoteLogic --> Prisma
-    TagLogic --> Prisma
+    NoteLogic --> Drizzle
+    TagLogic --> Drizzle
 
-    Prisma --> DB
+    Drizzle --> DB
 
     NotesAPI --> OpenAPI
     TagsAPI --> OpenAPI
@@ -113,7 +113,7 @@ graph TB
 ### Backend
 
 - **Framework**: Next.js 14 with App Router
-- **Database**: Cloudflare D1 (SQLite) with Prisma ORM
+- **Database**: Cloudflare D1 (SQLite) with Drizzle ORM
 - **Authentication**: JWT tokens with NextAuth.js
 - **API Documentation**: next-openapi-gen with Scalar UI
 - **Deployment**: Cloudflare Pages with OpenNext.js
@@ -192,68 +192,93 @@ erDiagram
 
 ### Database Models
 
-### User Model
+### User Table
 
 ```typescript
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  notes     Note[]
-}
+export const users = sqliteTable("users", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  email: text("email").notNull().unique(),
+  password: text("password").notNull(),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(
+    () => new Date()
+  ),
+  updatedAt: integer("updatedAt", { mode: "timestamp" }).$defaultFn(
+    () => new Date()
+  ),
+});
 ```
 
-### Note Model
+### Note Table
 
 ```typescript
-model Note {
-  id         String   @id @default(cuid())
-  userId     String
-  title      String
-  content    JSON     // Editor.js content in JSON format
-  isArchived Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  lastEdited DateTime @default(now())
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  noteTags   NoteTag[] // Many-to-many relationship with tags
-}
+export const notes = sqliteTable("notes", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  userId: text("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  content: text("content", { mode: "json" }).notNull(), // Editor.js content in JSON format
+  isArchived: integer("isArchived", { mode: "boolean" }).default(false),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(
+    () => new Date()
+  ),
+  updatedAt: integer("updatedAt", { mode: "timestamp" }).$defaultFn(
+    () => new Date()
+  ),
+  lastEdited: integer("lastEdited", { mode: "timestamp" }).$defaultFn(
+    () => new Date()
+  ),
+});
 ```
 
-### Tag Model
+### Tag Table
 
 ```typescript
-model Tag {
-  id        String   @id @default(cuid())
-  name      String
-  userId    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  noteTags  NoteTag[] // Many-to-many relationship with notes
-}
+export const tags = sqliteTable("tags", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  name: text("name").notNull(),
+  userId: text("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(
+    () => new Date()
+  ),
+  updatedAt: integer("updatedAt", { mode: "timestamp" }).$defaultFn(
+    () => new Date()
+  ),
+});
 ```
 
-### NoteTag Model (Junction Table)
+### NoteTag Table (Junction Table)
 
 ```typescript
-model NoteTag {
-  noteId String
-  tagId  String
-  note   Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
-  tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
-
-  @@id([noteId, tagId])
-}
+export const noteTags = sqliteTable(
+  "noteTags",
+  {
+    noteId: text("noteId")
+      .notNull()
+      .references(() => notes.id, { onDelete: "cascade" }),
+    tagId: text("tagId")
+      .notNull()
+      .references(() => tags.id, { onDelete: "cascade" }),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.noteId, table.tagId] }),
+  })
+);
 ```
 
 ### Database Configuration
 
 - **Provider**: SQLite (Cloudflare D1)
-- **ORM**: Prisma with driver adapters
-- **Migrations**: Prisma migrate with Cloudflare D1 integration
+- **ORM**: Drizzle ORM with SQLite adapter
+- **Migrations**: Drizzle Kit with Cloudflare D1 integration
 - **Connection**: Environment variable `DATABASE_URL`
 
 ## 🔐 Authentication
@@ -500,18 +525,33 @@ export async function POST(request: Request) {
 
 ### 2. Update Schemas
 
-Edit `src/schemas/auth.ts` to add new Zod schemas:
+Edit `src/schemas/auth.ts` and `src/lib/schema.ts` to add new Zod schemas and Drizzle table definitions:
 
 ```typescript
 export const YourSchema = z.object({
-  field: z.string().describe('Field description'),
+  field: z.string().describe("Field description"),
   // ... other fields
 });
 
 export type YourType = z.infer<typeof YourSchema>;
 ```
 
-### 3. Regenerate Documentation
+### 3. Update Database Schema (if needed)
+
+If you added new database tables or fields, generate and run migrations:
+
+```bash
+# Generate migration files
+npm run db:generate
+
+# Apply migrations locally
+npm run db:migrate
+
+# Apply migrations to production
+npm run db:migrate:deploy
+```
+
+### 4. Regenerate Documentation
 
 Run the generation command:
 
@@ -519,7 +559,7 @@ Run the generation command:
 npx next-openapi-gen generate
 ```
 
-### 4. Configuration Options
+### 5. Configuration Options
 
 Edit `next.openapi.json` to customize:
 
@@ -529,7 +569,7 @@ Edit `next.openapi.json` to customize:
 - **Response Sets**: Common error responses
 - **Error Config**: Error message templates
 
-### 5. Available Annotations
+### 6. Available Annotations
 
 | Annotation     | Description                   | Example                                  |
 | -------------- | ----------------------------- | ---------------------------------------- |
@@ -542,7 +582,7 @@ Edit `next.openapi.json` to customize:
 | `@add`         | Add custom response           | `@add 409:ConflictResponse`              |
 | `@openapi`     | Enable OpenAPI generation     | `@openapi`                               |
 
-### 6. Response Sets
+### 7. Response Sets
 
 Predefined response sets in `next.openapi.json`:
 
@@ -557,8 +597,10 @@ Predefined response sets in `next.openapi.json`:
 1. **Create Route File**: `src/app/api/your-endpoint/route.ts`
 2. **Add OpenAPI Annotations**: Use the annotation format above
 3. **Define Schemas**: Add Zod schemas in `src/schemas/`
-4. **Regenerate Docs**: Run `npx next-openapi-gen generate`
-5. **Test**: Visit `http://localhost:3000/api-docs`
+4. **Update Database** (if needed): Add Drizzle table definitions in `src/lib/schema.ts`
+5. **Run Migrations** (if needed): `npm run db:generate && npm run db:migrate`
+6. **Regenerate Docs**: Run `npx next-openapi-gen generate`
+7. **Test**: Visit `http://localhost:3000/api-docs`
 
 ### Testing API Endpoints
 
@@ -606,6 +648,28 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
   http://localhost:3000/api/tags
 ```
 
+### Database Management
+
+```bash
+# Generate new migration
+npm run db:generate
+
+# Apply migrations locally
+npm run db:migrate
+
+# Apply migrations to production
+npm run db:migrate:deploy
+
+# Open Drizzle Studio (database GUI)
+npm run db:studio
+
+# Reset local database
+npm run db:reset
+
+# Seed database with test data
+npm run db:seed
+```
+
 ## 📚 Configuration
 
 ### Project Structure
@@ -632,6 +696,7 @@ graph TD
         C --> C1[schema.ts]
         C --> C2[db.ts]
         C --> C3[auth.ts]
+        C --> C4[drizzle.config.ts]
     end
 
     subgraph "Documentation"
@@ -655,6 +720,7 @@ graph TD
 | `src/schemas/auth.ts`                | Auth Schemas    | Zod schemas for authentication endpoints    |
 | `src/schemas/notes.ts`               | Notes Schemas   | Zod schemas for notes and Editor.js content |
 | `src/lib/schema.ts`                  | Database Schema | Drizzle ORM table definitions               |
+| `drizzle.config.ts`                  | Drizzle Config  | Drizzle Kit configuration for migrations    |
 | `src/components/swagger-wrapper.tsx` | UI Component    | Scalar API documentation wrapper            |
 | `src/app/api-docs/page.tsx`          | Docs Page       | Protected documentation page                |
 | `public/openapi.json`                | Generated Spec  | Auto-generated OpenAPI specification        |

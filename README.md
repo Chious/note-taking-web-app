@@ -122,7 +122,7 @@ graph TB
 ### Backend
 
 - **Next.js API Routes** for serverless functions
-- **Prisma ORM** with PostgreSQL
+- **Drizzle ORM** with SQLite
 - **NextAuth.js** for authentication
 - **JWT** for session management
 - **Nodemailer** for email services
@@ -130,7 +130,7 @@ graph TB
 ### Database
 
 - **SQLite** as primary database
-- **Prisma** for database management and migrations
+- **Drizzle ORM** for database management and migrations
 - **R2 storage** for images
 
 ### DevOps & Testing
