@@ -332,6 +332,8 @@ export default function NotesPage() {
         <Button
           className="w-full bg-blue-500 text-white hover:bg-blue-600"
           onClick={handleCreateNote}
+          data-create-note
+          aria-label="Create new note (⌘N)"
         >
           Create Note
         </Button>
@@ -441,6 +443,8 @@ export default function NotesPage() {
         <Button
           className="bg-blue-500 text-white hover:bg-blue-600"
           onClick={handleCreateNote}
+          data-create-note
+          aria-label="Create new note (⌘N)"
         >
           Create Note
         </Button>

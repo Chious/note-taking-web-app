@@ -4,11 +4,13 @@ import { authOptions } from '@/lib/auth-config';
 import { getDb } from '@/lib/db';
 import { notes, tags, noteTags, type Note } from '@/lib/schema';
 import { CreateNoteSchema, NoteSearchSchema } from '@/schemas/notes';
-import { eq, and, desc, like, inArray } from 'drizzle-orm';
+import { eq, and, desc, inArray } from 'drizzle-orm';
 import { createId } from '@paralleldrive/cuid2';
 import {
   validateEditorContent,
   stringifyEditorContent,
+  extractTextFromEditorContent,
+  parseEditorContent,
 } from '@/lib/editor-utils';
 import z from 'zod';
 
@@ -52,16 +54,11 @@ export async function GET(request: NextRequest) {
       whereConditions.push(eq(notes.isArchived, validatedParams.isArchived));
     }
 
-    // Add text search filter
-    if (validatedParams.query) {
-      whereConditions.push(like(notes.title, `%${validatedParams.query}%`));
-    }
-
-    // Calculate offset for pagination
-    const offset = (validatedParams.page - 1) * validatedParams.limit;
+    // Build base query conditions (without text search for now)
+    const baseWhereConditions = [...whereConditions];
 
     // Get notes with tag filtering if needed
-    let noteResults: Note[];
+    let allNotes: Note[];
     if (validatedParams.tags && validatedParams.tags.length > 0) {
       // Complex query with tag filtering
       const taggedNoteIds = await db
@@ -78,27 +75,54 @@ export async function GET(request: NextRequest) {
       const noteIds = taggedNoteIds.map(row => row.noteId);
 
       if (noteIds.length === 0) {
-        noteResults = [];
+        allNotes = [];
       } else {
-        whereConditions.push(inArray(notes.id, noteIds));
-        noteResults = await db
+        baseWhereConditions.push(inArray(notes.id, noteIds));
+        allNotes = await db
           .select()
           .from(notes)
-          .where(and(...whereConditions))
-          .orderBy(desc(notes.lastEdited))
-          .limit(validatedParams.limit)
-          .offset(offset);
+          .where(and(...baseWhereConditions))
+          .orderBy(desc(notes.lastEdited));
       }
     } else {
       // Simple query without tag filtering
-      noteResults = await db
+      allNotes = await db
         .select()
         .from(notes)
-        .where(and(...whereConditions))
-        .orderBy(desc(notes.lastEdited))
-        .limit(validatedParams.limit)
-        .offset(offset);
+        .where(and(...baseWhereConditions))
+        .orderBy(desc(notes.lastEdited));
     }
+
+    // Apply text search filter (search in both title and content)
+    let filteredNotes = allNotes;
+    if (validatedParams.query) {
+      const searchQuery = validatedParams.query.toLowerCase();
+      filteredNotes = allNotes.filter(note => {
+        // Search in title
+        const titleMatch = note.title.toLowerCase().includes(searchQuery);
+
+        // Search in content
+        let contentMatch = false;
+        try {
+          const content = parseEditorContent(note.content as string);
+          const contentText = extractTextFromEditorContent(content);
+          contentMatch = contentText.toLowerCase().includes(searchQuery);
+        } catch (error) {
+          // If content parsing fails, skip content search for this note
+          console.warn(`Failed to parse content for note ${note.id}:`, error);
+        }
+
+        return titleMatch || contentMatch;
+      });
+    }
+
+    // Apply pagination to filtered results
+    const total = filteredNotes.length;
+    const offset = (validatedParams.page - 1) * validatedParams.limit;
+    const noteResults = filteredNotes.slice(
+      offset,
+      offset + validatedParams.limit
+    );
 
     // Get tags for each note
     const notesWithTags = await Promise.all(
@@ -116,14 +140,6 @@ export async function GET(request: NextRequest) {
         };
       })
     );
-
-    // Get total count for pagination
-    const totalResult = await db
-      .select({ count: notes.id })
-      .from(notes)
-      .where(and(...whereConditions.slice(0, -1))); // Exclude limit/offset conditions
-
-    const total = totalResult.length;
 
     return NextResponse.json({
       message: 'Notes retrieved successfully',

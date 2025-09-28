@@ -1,10 +1,27 @@
 export function UTFToLocalTime(time: string) {
   const date = new Date(time);
+
+  if (isNaN(date.getTime())) return '';
+
   const day = date.getDate();
-  const month = date.getMonth() + 1;
   const year = date.getFullYear();
 
-  if (isNaN(date.getTime())) return "";
+  const monthNames = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+
+  const month = monthNames[date.getMonth()];
 
   return `${day} ${month} ${year}`;
 }

@@ -1,6 +1,6 @@
 # Note-Taking Web App
 
-A full-stack note-taking web application with user authentication, CRUD operations, search functionality, and theming capabilities. Built with Next.js, Tailwind CSS, PostgreSQL, and Prisma ORM.
+A full-stack note-taking web application with user authentication, CRUD operations, search functionality, and theming capabilities. Built with Next.js 15, React 19, Tailwind CSS v4, Cloudflare D1 (SQLite), and Drizzle ORM. Deployed on Cloudflare Workers with R2 storage.
 
 ## 🚀 Project Status
 
@@ -112,54 +112,78 @@ graph TB
 
 ### Frontend
 
-- **Next.js 14+** with App Router
-- **TypeScript** for type safety
-- **Tailwind CSS** for styling
-- **React Query** for state management
-- **Zod** for data validation
-- **WYSIWYG Editor** for rich text editing
+- **Next.js 15.5.2** with App Router
+- **React 19.1.0** with React DOM 19.1.0
+- **TypeScript 5** for type safety
+- **Tailwind CSS v4** for styling with PostCSS
+- **TanStack React Query 5.90.1** for state management and caching
+- **Zod 4.1.8** for data validation
+- **Editor.js 2.31.0** for rich text editing with plugins:
+  - Header, Paragraph, List, Quote, Delimiter plugins
+- **Radix UI** components for accessible UI primitives
+- **Next Themes 0.4.6** for theme management
+- **Lucide React** for icons
+- **Sonner** for toast notifications
 
-### Backend
+### Backend & API
 
 - **Next.js API Routes** for serverless functions
-- **Drizzle ORM** with SQLite
-- **NextAuth.js** for authentication
-- **JWT** for session management
-- **Nodemailer** for email services
+- **Drizzle ORM 0.44.5** with Drizzle Kit 0.31.4
+- **Cloudflare D1** (SQLite) as primary database
+- **NextAuth.js 4.24.11** for authentication
+- **JWT** for session management with bcryptjs for password hashing
+- **@opennextjs/cloudflare 1.8.0** for Cloudflare Workers deployment
 
-### Database
+### Database & Storage
 
-- **SQLite** as primary database
+- **Cloudflare D1** (SQLite) as primary database
 - **Drizzle ORM** for database management and migrations
-- **R2 storage** for images
+- **Cloudflare R2** for object storage (images, files)
+- **Better SQLite3** for local development
 
 ### DevOps & Testing
 
-- **OpenNext.js** for development for cloudflare
+- **OpenNext.js Cloudflare** for Cloudflare Workers deployment
+- **Wrangler 4.34.0** for Cloudflare development and deployment
 - **GitHub Actions** for CI/CD
-- **Vitest** for testing
-- **ESLint & Prettier** for code quality
+- **Vitest 3.2.4** with coverage and UI for testing
+- **Testing Library** (React, Jest DOM, User Event) for component testing
+- **ESLint 9** with Next.js config for code quality
+- **TypeScript** strict mode for type checking
 
 ## 📁 Project Structure
 
 ```
 note-taking-web-app/
-├── .wrangler/                # Local Cache file for Cloudflare(e.g. D1, R2, etc.)
-├── .open-next/               # Deployment file for Cloudflare Worker
+├── .wrangler/                # Cloudflare local cache (D1, R2, etc.)
+├── .open-next/               # OpenNext.js build output for Cloudflare Workers
 ├── .taskmaster/              # Task Master configuration
 │   ├── docs/                 # Project documentation
 │   ├── tasks/                # Individual task files
 │   └── config.json           # Task Master settings
 ├── docs/                     # Additional documentation
 │   ├── ENVIRONMENT_SETUP.md  # Development setup guide
-│   ├── ROUTING.md            # Application routing structure
-│   └── API_DOC.md            # API documentation
+│   ├── API_DOCUMENTATION.md  # API documentation
+│   └── references/           # Reference documentation
+├── migrations/               # Drizzle ORM database migrations
+│   ├── meta/                 # Migration metadata
+│   └── *.sql                 # SQL migration files
+├── scripts/                  # Development and deployment scripts
+│   ├── migrate-d1.sh         # D1 migration helper
+│   ├── seed.ts               # Database seeding
+│   └── test-*.ts             # Testing utilities
 ├── src/
 │   ├── app/                  # Next.js App Router
-│   ├── components/           # Reusable components
-│   ├── lib/                  # Utility functions
+│   │   ├── (auth)/           # Authenticated routes
+│   │   ├── api/              # API routes
+│   │   └── api-docs/         # API documentation
+│   ├── components/           # Reusable React components
+│   │   ├── auth/             # Authentication components
+│   │   ├── sidebars/         # Sidebar components
+│   │   └── ui/               # UI primitives
+│   ├── hooks/                # Custom React hooks
+│   ├── lib/                  # Utility functions and configurations
 │   └── types/                # TypeScript type definitions
-├── prisma/                   # Database schema and migrations
 └── public/                   # Static assets
 ```
 
@@ -167,15 +191,15 @@ note-taking-web-app/
 
 The project is organized into 15 main development tasks using Task Master:
 
-1. **Project Setup** - Next.js, TypeScript, Tailwind CSS, Docker
-2. **Database Schema** - Prisma ORM, PostgreSQL, OAuth models
+1. **Project Setup** - Next.js 15, TypeScript, Tailwind CSS v4, Cloudflare
+2. **Database Schema** - Drizzle ORM, Cloudflare D1, OAuth models
 3. **Authentication System** - Email/password + Google OAuth
 4. **Password Reset** - Email-based recovery system
 5. **Note CRUD API** - Create, read, update, delete with history
 6. **Search & Filtering** - Advanced search functionality
 7. **UI Layout** - Responsive design and navigation
 8. **Authentication UI** - Login/register forms with OAuth
-9. **Note Editor** - WYSIWYG editor with undo/redo
+9. **Note Editor** - Editor.js rich text editor with plugins
 10. **Dashboard UI** - Note listing and management
 11. **Theming** - Light/dark mode and font options
 12. **Accessibility** - Keyboard navigation and a11y
@@ -187,9 +211,10 @@ The project is organized into 15 main development tasks using Task Master:
 
 ### Prerequisites
 
-- Node.js 18+
-- PostgreSQL 14+
-- Docker & Docker Compose (recommended)
+- **Node.js 20+** (specified in engines)
+- **npm 9+** (specified in engines)
+- **Cloudflare Account** for D1 database and R2 storage
+- **Wrangler CLI** for Cloudflare development
 
 ### Development Setup
 
@@ -213,17 +238,23 @@ The project is organized into 15 main development tasks using Task Master:
    # Edit .env with your configuration
    ```
 
-4. **Start development environment**
+4. **Set up Cloudflare D1 database**
 
    ```bash
-   docker-compose up -d  # Start PostgreSQL
-   npm run dev           # Start Next.js development server
+   # Generate database schema
+   npm run db:generate
+   
+   # Apply migrations locally
+   npm run db:migrate
+   
+   # Optional: Seed database with sample data
+   npm run db:seed
    ```
 
-5. **Run database migrations**
+5. **Start development server**
+
    ```bash
-   npx prisma migrate dev
-   npx prisma generate
+   npm run dev           # Start Next.js development server
    ```
 
 ### Task Management

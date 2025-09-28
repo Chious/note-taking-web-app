@@ -1,11 +1,13 @@
-"use client";
+'use client';
 
-import { Search, X } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
-import { useNavParam, useSearchQuery, useTagFilter } from "@/hooks/use-params";
+import { Search, Settings, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { useState, useEffect } from 'react';
+import { useNavParam, useSearchQuery, useTagFilter } from '@/hooks/use-params';
+import { KeyboardShortcutsHelp } from '@/components/keyboard-shortcuts-help';
+import Link from 'next/link';
 
 interface AppHeaderProps {
   onMenuClick?: () => void;
@@ -14,7 +16,7 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ showSearch = true, className }: AppHeaderProps) {
-  const [searchInput, setSearchInput] = useState("");
+  const [searchInput, setSearchInput] = useState('');
 
   // Get URL parameters safely
   const { nav } = useNavParam();
@@ -23,7 +25,7 @@ export function AppHeader({ showSearch = true, className }: AppHeaderProps) {
 
   // Sync search input with URL query parameter
   useEffect(() => {
-    setSearchInput(query || "");
+    setSearchInput(query || '');
   }, [query]);
 
   // Get dynamic title
@@ -32,13 +34,13 @@ export function AppHeader({ showSearch = true, className }: AppHeaderProps) {
       return `Search: "${query}"`;
     }
     switch (nav) {
-      case "archived":
-        return "Archived Notes";
+      case 'archived':
+        return 'Archived Notes';
       default:
         if (tag) {
           return `Tag: ${tag}`;
         }
-        return "My Notes";
+        return 'My Notes';
     }
   };
 
@@ -56,13 +58,13 @@ export function AppHeader({ showSearch = true, className }: AppHeaderProps) {
 
   // Clear search
   const clearSearch = () => {
-    setSearchInput("");
+    setSearchInput('');
     setQuery(null);
   };
 
   // Handle key press for real-time search (optional)
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Escape") {
+    if (e.key === 'Escape') {
       clearSearch();
     }
   };
@@ -70,13 +72,17 @@ export function AppHeader({ showSearch = true, className }: AppHeaderProps) {
   return (
     <header
       className={cn(
-        "bg-background border-b border-border px-4 py-3 flex items-center justify-between gap-4",
+        'bg-background border-b border-border px-4 py-3 flex items-center justify-between gap-4',
         className
       )}
+      role="banner"
     >
       {/* Dynamic title */}
       <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
-        <h1 className="text-xl font-semibold text-foreground truncate">
+        <h1
+          className="text-xl font-semibold text-foreground truncate"
+          id="page-title"
+        >
           {getPageTitle()}
         </h1>
       </div>
@@ -96,6 +102,9 @@ export function AppHeader({ showSearch = true, className }: AppHeaderProps) {
               onChange={handleSearchChange}
               onKeyDown={handleKeyPress}
               className="pl-10 pr-10 bg-muted/50 border-muted focus:bg-background"
+              data-search-input
+              aria-label="Search notes, content, or tags"
+              id="search"
             />
             {searchInput && (
               <Button
@@ -128,6 +137,8 @@ export function AppHeader({ showSearch = true, className }: AppHeaderProps) {
               onChange={handleSearchChange}
               onKeyDown={handleKeyPress}
               className="pl-10 pr-10 bg-muted/50 border-muted focus:bg-background text-sm"
+              data-search-input
+              aria-label="Search notes"
             />
             {searchInput && (
               <Button
@@ -144,6 +155,17 @@ export function AppHeader({ showSearch = true, className }: AppHeaderProps) {
           </div>
         </form>
       )}
+
+      {/* Keyboard shortcuts help */}
+      <div className="flex items-center gap-2">
+        <KeyboardShortcutsHelp />
+      </div>
+
+      <Link href="/dashboard/setting">
+        <Button variant="ghost" size="icon">
+          <Settings className="h-4 w-4" />
+        </Button>
+      </Link>
     </header>
   );
 }

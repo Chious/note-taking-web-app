@@ -1,6 +1,8 @@
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+'use client';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Sun,
   Moon,
@@ -9,41 +11,62 @@ import {
   CaseSensitive,
   ChevronLeft,
   ArrowLeft,
-} from "lucide-react";
-import Link from "next/link";
+} from 'lucide-react';
+import Link from 'next/link';
+import { useState, useEffect } from 'react';
+import { useTheme } from 'next-themes';
+import { useFont } from '@/providers/theme-provider';
 
-type Action = "theme" | "font" | "account";
-
-export async function generateStaticParams() {
-  return [
-    { settingAction: "theme" },
-    { settingAction: "font" },
-    { settingAction: "account" },
-  ];
-}
+type Action = 'theme' | 'font' | 'account';
 
 const themeOptions = [
   {
-    id: "light",
+    id: 'light',
     icon: Sun,
-    title: "Light Mode",
-    description: "Pick a clean and classic light theme",
+    title: 'Light Mode',
+    description: 'Pick a clean and classic light theme',
   },
   {
-    id: "dark",
+    id: 'dark',
     icon: Moon,
-    title: "Dark Mode",
-    description: "Choose a sleek dark theme for better focus",
+    title: 'Dark Mode',
+    description: 'Choose a sleek dark theme for better focus',
   },
   {
-    id: "system",
+    id: 'system',
     icon: Monitor,
-    title: "System Mode",
-    description: "Automatically switch based on your system settings",
+    title: 'System Mode',
+    description: 'Automatically switch based on your system settings',
+  },
+];
+
+const fontOptions = [
+  {
+    id: 'sans',
+    icon: CaseSensitive,
+    title: 'Sans Serif',
+    description: 'Clean and modern, easy to read.',
+    fontClass: 'font-sans',
+  },
+  {
+    id: 'serif',
+    icon: CaseSensitive,
+    title: 'Serif',
+    description: 'Classic and elegant for a timeless feel.',
+    fontClass: 'font-serif',
+  },
+  {
+    id: 'mono',
+    icon: CaseSensitive,
+    title: 'Monospace',
+    description: 'Code-like and precise for technical vibe.',
+    fontClass: 'font-mono',
   },
 ];
 
 function ThemeSettings() {
+  const { theme, setTheme } = useTheme();
+
   return (
     <div className="space-y-6">
       <div>
@@ -63,40 +86,42 @@ function ThemeSettings() {
       </div>
 
       <div className="space-y-4">
-        {themeOptions.map((option) => {
+        {themeOptions.map(option => {
+          const isSelected = theme === option.id;
           return (
             <Button
               key={option.id}
               variant="outline"
+              onClick={() => setTheme(option.id)}
               className={`w-full h-auto p-4 flex items-start justify-start text-left transition-colors ${
-                option.id === "light"
-                  ? "border-blue-500 bg-blue-50 hover:bg-blue-100"
-                  : "hover:bg-muted"
+                isSelected
+                  ? 'border-blue-500 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950 dark:hover:bg-blue-900'
+                  : 'hover:bg-muted'
               }`}
             >
               <div className="flex items-center gap-3 w-full">
                 <option.icon
                   className={`w-5 h-5 flex-shrink-0 ${
-                    option.id === "light"
-                      ? "text-blue-600"
-                      : "text-muted-foreground"
+                    isSelected
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-muted-foreground'
                   }`}
                 />
                 <div className="flex-1">
                   <div
                     className={`font-medium ${
-                      option.id === "light"
-                        ? "text-blue-900"
-                        : "text-foreground"
+                      isSelected
+                        ? 'text-blue-900 dark:text-blue-100'
+                        : 'text-foreground'
                     }`}
                   >
                     {option.title}
                   </div>
                   <div
                     className={`text-sm ${
-                      option.id === "light"
-                        ? "text-blue-700"
-                        : "text-muted-foreground"
+                      isSelected
+                        ? 'text-blue-700 dark:text-blue-300'
+                        : 'text-muted-foreground'
                     }`}
                   >
                     {option.description}
@@ -106,9 +131,9 @@ function ThemeSettings() {
                 <div className="w-5">
                   <Circle
                     className={`w-5 h-5 flex-shrink-0 ${
-                      option.id === "light"
-                        ? "text-blue-500 fill-blue-500"
-                        : "text-gray-300"
+                      isSelected
+                        ? 'text-blue-500 fill-blue-500 dark:text-blue-400 dark:fill-blue-400'
+                        : 'text-gray-300'
                     }`}
                   />
                 </div>
@@ -121,36 +146,17 @@ function ThemeSettings() {
       <div className="border border-solid border-border w-full" />
 
       <div className="flex gap-2 pt-4">
-        <Button className="bg-blue-500 text-white hover:bg-blue-600">
-          Apply Changes
-        </Button>
+        <p className="text-sm text-muted-foreground">
+          Theme changes are applied automatically
+        </p>
       </div>
     </div>
   );
 }
 
-const fontOptions = [
-  {
-    id: "sans-serif",
-    icon: CaseSensitive,
-    title: "Sans Serif",
-    description: "Clean and modern, easy to read.",
-  },
-  {
-    id: "serif",
-    icon: CaseSensitive,
-    title: "Serif",
-    description: "Classic and elegant for a timeless feel.",
-  },
-  {
-    id: "monospace",
-    icon: CaseSensitive,
-    title: "Monospace",
-    description: "Code-like and precise for technical vibe.",
-  },
-];
-
 function FontSettings() {
+  const { font, setFont } = useFont();
+
   return (
     <div className="space-y-6">
       <div>
@@ -170,40 +176,42 @@ function FontSettings() {
       </div>
 
       <div className="space-y-4">
-        {fontOptions.map((option) => {
+        {fontOptions.map(option => {
+          const isSelected = font === option.id;
           return (
             <Button
               key={option.id}
               variant="outline"
+              onClick={() => setFont(option.id as 'sans' | 'serif' | 'mono')}
               className={`w-full h-auto p-4 flex items-start justify-start text-left transition-colors ${
-                option.id === "light"
-                  ? "border-blue-500 bg-blue-50 hover:bg-blue-100"
-                  : "hover:bg-muted"
+                isSelected
+                  ? 'border-blue-500 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950 dark:hover:bg-blue-900'
+                  : 'hover:bg-muted'
               }`}
             >
               <div className="flex items-center gap-3 w-full">
                 <option.icon
                   className={`w-5 h-5 flex-shrink-0 ${
-                    option.id === "light"
-                      ? "text-blue-600"
-                      : "text-muted-foreground"
+                    isSelected
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-muted-foreground'
                   }`}
                 />
                 <div className="flex-1">
                   <div
-                    className={`font-medium ${
-                      option.id === "light"
-                        ? "text-blue-900"
-                        : "text-foreground"
+                    className={`font-medium ${option.fontClass} ${
+                      isSelected
+                        ? 'text-blue-900 dark:text-blue-100'
+                        : 'text-foreground'
                     }`}
                   >
                     {option.title}
                   </div>
                   <div
-                    className={`text-sm ${
-                      option.id === "light"
-                        ? "text-blue-700"
-                        : "text-muted-foreground"
+                    className={`text-sm ${option.fontClass} ${
+                      isSelected
+                        ? 'text-blue-700 dark:text-blue-300'
+                        : 'text-muted-foreground'
                     }`}
                   >
                     {option.description}
@@ -213,9 +221,9 @@ function FontSettings() {
                 <div className="w-5">
                   <Circle
                     className={`w-5 h-5 flex-shrink-0 ${
-                      option.id === "light"
-                        ? "text-blue-500 fill-blue-500"
-                        : "text-gray-300"
+                      isSelected
+                        ? 'text-blue-500 fill-blue-500 dark:text-blue-400 dark:fill-blue-400'
+                        : 'text-gray-300'
                     }`}
                   />
                 </div>
@@ -228,13 +236,14 @@ function FontSettings() {
       <div className="border border-solid border-border w-full" />
 
       <div className="flex gap-2 pt-4">
-        <Button className="bg-blue-500 text-white hover:bg-blue-600">
-          Apply Changes
-        </Button>
+        <p className="text-sm text-muted-foreground">
+          Font changes are applied automatically
+        </p>
       </div>
     </div>
   );
 }
+
 function AccountSettings() {
   return (
     <div className="space-y-6">
@@ -299,19 +308,29 @@ function AccountSettings() {
   );
 }
 
-export default async function SettingActionPage({
+export default function SettingActionPage({
   params,
 }: {
   params: Promise<{ settingAction: Action }>;
 }) {
-  const { settingAction } = await params;
+  const [settingAction, setSettingAction] = useState<Action | null>(null);
+
+  useEffect(() => {
+    params.then(({ settingAction }) => {
+      setSettingAction(settingAction);
+    });
+  }, [params]);
+
+  if (!settingAction) {
+    return <div>Loading...</div>;
+  }
 
   switch (settingAction) {
-    case "theme":
+    case 'theme':
       return <ThemeSettings />;
-    case "font":
+    case 'font':
       return <FontSettings />;
-    case "account":
+    case 'account':
       return <AccountSettings />;
     default:
       return <ThemeSettings />;
