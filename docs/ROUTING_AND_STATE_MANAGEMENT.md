@@ -62,9 +62,9 @@ The application uses a single-page approach with URL parameters for state manage
 
 - Base route: `/dashboard/setting` - Settings overview
 - Action routes:
-  - `/dashboard/setting/theme` - Color theme settings
-  - `/dashboard/setting/font` - Font preferences
-  - `/dashboard/setting/account` - Account management
+  - `/dashboard/setting/theme` - Color theme settings (Light/Dark/System)
+  - `/dashboard/setting/font` - Font preferences (Sans Serif/Serif/Monospace)
+  - `/dashboard/setting/account` - Account management and password changes
 
 ## API Routes
 
@@ -137,7 +137,7 @@ The application uses Next.js middleware to protect routes:
 
 ```typescript
 // middleware.ts
-import { withAuth } from "next-auth/middleware";
+import { withAuth } from 'next-auth/middleware';
 
 export default withAuth(
   function middleware(req) {
@@ -151,7 +151,7 @@ export default withAuth(
 );
 
 export const config = {
-  matcher: ["/dashboard/:path*"],
+  matcher: ['/dashboard/:path*'],
 };
 ```
 
@@ -164,8 +164,8 @@ export const config = {
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
 
-  if (status === "loading") return <LoadingSpinner />;
-  if (!session) redirect("/login");
+  if (status === 'loading') return <LoadingSpinner />;
+  if (!session) redirect('/login');
 
   return <>{children}</>;
 }
@@ -178,7 +178,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 export function PublicRoute({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
 
-  if (session) redirect("/dashboard");
+  if (session) redirect('/dashboard');
 
   return <>{children}</>;
 }
@@ -193,32 +193,32 @@ Desktop navigation uses a traditional sidebar with sections:
 ```typescript
 const navigationItems = [
   {
-    section: "notes",
-    title: "Notes",
+    section: 'notes',
+    title: 'Notes',
     items: [
       {
-        id: "all-notes",
-        label: "All Notes",
+        id: 'all-notes',
+        label: 'All Notes',
         icon: FileText,
         count: allNotesCount,
         onClick: () => setNav(null),
       },
       {
-        id: "archived",
-        label: "Archived Notes",
+        id: 'archived',
+        label: 'Archived Notes',
         icon: Archive,
         count: archivedCount,
-        onClick: () => setNav("archived"),
+        onClick: () => setNav('archived'),
       },
     ],
   },
   {
-    section: "tags",
-    title: "Tags",
+    section: 'tags',
+    title: 'Tags',
     items: [
       {
-        id: "all-tags",
-        label: "All Tags",
+        id: 'all-tags',
+        label: 'All Tags',
         icon: Tag,
         count: totalTagsCount,
         onClick: () => setTag(null),
@@ -237,8 +237,8 @@ Mobile navigation uses a bottom navigation bar:
 ```typescript
 const mobileNavItems = [
   {
-    id: "home",
-    label: "Home",
+    id: 'home',
+    label: 'Home',
     icon: FileText,
     onClick: () => {
       setNav(null);
@@ -247,37 +247,37 @@ const mobileNavItems = [
     isActive: !nav && !tag,
   },
   {
-    id: "search",
-    label: "Search",
+    id: 'search',
+    label: 'Search',
     icon: Search,
-    onClick: () => setNav("search"),
-    isActive: nav === "search",
+    onClick: () => setNav('search'),
+    isActive: nav === 'search',
   },
   {
-    id: "archived",
-    label: "Archive",
+    id: 'archived',
+    label: 'Archive',
     icon: Archive,
     onClick: () => {
-      setNav("archived");
+      setNav('archived');
       setTag(null);
     },
-    isActive: nav === "archived",
+    isActive: nav === 'archived',
   },
   {
-    id: "tags",
-    label: "Tags",
+    id: 'tags',
+    label: 'Tags',
     icon: Tag,
     onClick: () => {
       setTag(null);
-      setNav("tags");
+      setNav('tags');
     },
-    isActive: nav === "tags",
+    isActive: nav === 'tags',
   },
   {
-    id: "settings",
-    label: "Settings",
+    id: 'settings',
+    label: 'Settings',
     icon: Settings,
-    onClick: () => router.push("/dashboard/setting"),
+    onClick: () => router.push('/dashboard/setting'),
     isActive: false,
   },
 ];
@@ -316,9 +316,6 @@ Dynamic breadcrumbs and headers based on current route and state:
 
 #### 🚧 Planned Features
 
-- Individual note detail routes (`/dashboard/notes/[id]`)
-- Note creation workflow (`/dashboard/notes/new`)
-- Advanced search filters and sorting
 - Note sharing and collaboration features
 
 ## URL Patterns and SEO
@@ -363,12 +360,12 @@ The application uses Next.js automatic code splitting:
 
 ```typescript
 // Dynamic imports for large components
-const NoteEditor = dynamic(() => import("@/components/NoteEditor"), {
+const NoteEditor = dynamic(() => import('@/components/NoteEditor'), {
   loading: () => <EditorSkeleton />,
   ssr: false,
 });
 
-const SearchResults = dynamic(() => import("@/components/SearchResults"), {
+const SearchResults = dynamic(() => import('@/components/SearchResults'), {
   loading: () => <SearchSkeleton />,
 });
 ```
@@ -449,5 +446,337 @@ Examples:
 - Tap "Archive" → nav=archived → Archived notes
 - Select note → slug=note-id → Note editor
 ```
+
+## Theme and Font Customization System
+
+### Overview
+
+The application includes a comprehensive theme and font customization system that allows users to personalize their experience with different color themes and font families. The system is built on top of `next-themes` and custom providers for seamless integration.
+
+### Theme System
+
+#### Available Themes
+
+The application supports three theme modes:
+
+- **Light Mode**: Clean and classic light theme with high contrast
+- **Dark Mode**: Sleek dark theme optimized for low-light environments
+- **System Mode**: Automatically switches based on user's system preferences
+
+#### Theme Provider Implementation
+
+```typescript
+// src/providers/theme-provider.tsx
+import { ThemeProvider as NextThemeProvider } from 'next-themes';
+
+export function ThemeProvider({ children, ...props }) {
+  return (
+    <NextThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+      {...props}
+    >
+      <FontProvider>{children}</FontProvider>
+    </NextThemeProvider>
+  );
+}
+```
+
+#### Using Theme in Components
+
+```typescript
+import { useTheme } from 'next-themes';
+
+function ThemeSettings() {
+  const { theme, setTheme } = useTheme();
+
+  return (
+    <div>
+      <button onClick={() => setTheme('light')}>Light</button>
+      <button onClick={() => setTheme('dark')}>Dark</button>
+      <button onClick={() => setTheme('system')}>System</button>
+    </div>
+  );
+}
+```
+
+### Font System
+
+#### Available Font Families
+
+The application supports three font families:
+
+- **Sans Serif** (`font-sans`): Inter - Clean and modern, easy to read
+- **Serif** (`font-serif`): Noto Serif - Classic and elegant for a timeless feel
+- **Monospace** (`font-mono`): Source Code Pro - Code-like and precise for technical content
+
+#### Font Provider Implementation
+
+```typescript
+// Custom FontProvider within theme-provider.tsx
+type Font = 'sans' | 'serif' | 'mono';
+
+function FontProvider({ children }) {
+  const [font, setFont] = useState<Font>('sans');
+
+  useEffect(() => {
+    // Load font preference from localStorage
+    const savedFont = localStorage.getItem('font-preference') as Font;
+    if (savedFont && ['sans', 'serif', 'mono'].includes(savedFont)) {
+      setFont(savedFont);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Apply font classes to document
+    const root = document.documentElement;
+    root.classList.remove('font-sans', 'font-serif', 'font-mono');
+    root.classList.add(`font-${font}`);
+
+    // Save to localStorage
+    localStorage.setItem('font-preference', font);
+  }, [font]);
+
+  return (
+    <FontProviderContext.Provider value={{ font, setFont }}>
+      {children}
+    </FontProviderContext.Provider>
+  );
+}
+```
+
+#### Using Font in Components
+
+```typescript
+import { useFont } from '@/providers/theme-provider';
+
+function FontSettings() {
+  const { font, setFont } = useFont();
+
+  return (
+    <div>
+      <button onClick={() => setFont('sans')}>Sans Serif</button>
+      <button onClick={() => setFont('serif')}>Serif</button>
+      <button onClick={() => setFont('mono')}>Monospace</button>
+    </div>
+  );
+}
+```
+
+### CSS Configuration
+
+#### Tailwind CSS v4 Integration
+
+The font system is integrated with Tailwind CSS v4 using CSS custom properties:
+
+```css
+/* src/app/globals.css */
+@theme inline {
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-noto-serif);
+  --font-mono: var(--font-source-code-pro);
+}
+
+/* Font switching support */
+.font-sans * {
+  font-family: var(--font-inter), system-ui, sans-serif !important;
+}
+
+.font-serif * {
+  font-family: var(--font-noto-serif), Georgia, serif !important;
+}
+
+.font-mono * {
+  font-family: var(--font-source-code-pro), 'Courier New', monospace !important;
+}
+
+/* CSS custom property approach */
+:root {
+  --current-font-family: var(--font-inter);
+}
+
+body {
+  font-family: var(--current-font-family, var(--font-inter)) !important;
+}
+```
+
+#### Font Loading in Layout
+
+```typescript
+// src/app/layout.tsx
+import { Inter, Noto_Serif, Source_Code_Pro } from 'next/font/google';
+
+const inter = Inter({
+  variable: '--font-inter',
+  subsets: ['latin'],
+});
+
+const notoSerif = Noto_Serif({
+  variable: '--font-noto-serif',
+  subsets: ['latin'],
+});
+
+const sourceCodePro = Source_Code_Pro({
+  variable: '--font-source-code-pro',
+  subsets: ['latin'],
+});
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className={`${inter.variable} ${notoSerif.variable} ${sourceCodePro.variable} antialiased`}
+      >
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+### Settings Pages Implementation
+
+#### Theme Settings Page
+
+Located at `/dashboard/setting/theme`, this page provides:
+
+- Visual theme selection with icons (Sun, Moon, Monitor)
+- Real-time preview of theme changes
+- Automatic application without save buttons
+- Proper styling for both light and dark modes
+
+#### Font Settings Page
+
+Located at `/dashboard/setting/font`, this page provides:
+
+- Font family selection with live previews
+- Each option displays in its respective font
+- Real-time font switching across the entire application
+- Automatic persistence to localStorage
+
+### Persistence and State Management
+
+#### Theme Persistence
+
+- **Storage**: Handled automatically by `next-themes`
+- **Scope**: System-wide preference
+- **Sync**: Automatically syncs with system theme when "System" mode is selected
+
+#### Font Persistence
+
+- **Storage**: Custom localStorage implementation
+- **Key**: `font-preference`
+- **Scope**: Application-wide font family
+- **Loading**: Restored on page load and applied immediately
+
+### Technical Features
+
+#### Client-Side Safety
+
+- **SSR Compatibility**: Proper hydration handling to prevent mismatches
+- **Loading States**: Graceful handling during client-side initialization
+- **Fallbacks**: Default themes and fonts when preferences aren't available
+
+#### Performance Optimizations
+
+- **CSS Variables**: Efficient font switching using CSS custom properties
+- **Class-based Switching**: Minimal DOM manipulation for theme changes
+- **Immediate Application**: No page refresh required for changes
+
+#### Type Safety
+
+```typescript
+// Type definitions
+type Theme = 'light' | 'dark' | 'system';
+type Font = 'sans' | 'serif' | 'mono';
+
+interface ThemeContextType {
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
+}
+
+interface FontContextType {
+  font: Font;
+  setFont: (font: Font) => void;
+}
+```
+
+### Usage Examples
+
+#### Basic Theme Usage
+
+```typescript
+import { useTheme } from 'next-themes';
+
+function Header() {
+  const { theme, setTheme } = useTheme();
+
+  return (
+    <header className="bg-background text-foreground">
+      <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+        Toggle Theme
+      </button>
+    </header>
+  );
+}
+```
+
+#### Basic Font Usage
+
+```typescript
+import { useFont } from '@/providers/theme-provider';
+
+function TextEditor() {
+  const { font } = useFont();
+
+  return (
+    <div className={`editor font-${font}`}>
+      <p>This text will display in the selected font family</p>
+    </div>
+  );
+}
+```
+
+#### Combined Theme and Font Usage
+
+```typescript
+import { useTheme } from 'next-themes';
+import { useFont } from '@/providers/theme-provider';
+
+function CustomizationPanel() {
+  const { theme, setTheme } = useTheme();
+  const { font, setFont } = useFont();
+
+  return (
+    <div className="customization-panel">
+      <h2>Appearance Settings</h2>
+
+      <section>
+        <h3>Theme</h3>
+        <select value={theme} onChange={e => setTheme(e.target.value)}>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+          <option value="system">System</option>
+        </select>
+      </section>
+
+      <section>
+        <h3>Font</h3>
+        <select value={font} onChange={e => setFont(e.target.value)}>
+          <option value="sans">Sans Serif</option>
+          <option value="serif">Serif</option>
+          <option value="mono">Monospace</option>
+        </select>
+      </section>
+    </div>
+  );
+}
+```
+
+This comprehensive theme and font system provides users with full control over their visual experience while maintaining excellent performance and developer experience.
+
+---
 
 This routing structure provides a comprehensive foundation for the note-taking application, ensuring proper navigation flow, security, and user experience across all devices and use cases. The mobile-first approach ensures excellent usability on all screen sizes while maintaining desktop functionality.

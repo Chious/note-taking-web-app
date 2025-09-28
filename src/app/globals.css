@@ -280,4 +280,26 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Font switching support */
+  .font-sans * {
+    font-family: var(--font-inter), system-ui, sans-serif !important;
+  }
+  
+  .font-serif * {
+    font-family: var(--font-noto-serif), Georgia, serif !important;
+  }
+  
+  .font-mono * {
+    font-family: var(--font-source-code-pro), 'Courier New', monospace !important;
+  }
+  
+  /* Alternative CSS custom property approach */
+  :root {
+    --current-font-family: var(--font-inter);
+  }
+  
+  body {
+    font-family: var(--current-font-family, var(--font-inter)) !important;
+  }
 }
