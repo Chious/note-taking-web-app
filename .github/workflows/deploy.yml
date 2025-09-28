@@ -23,47 +23,15 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      # For manual dispatch, we need to run the full build process
-      - name: Full build process (manual dispatch only)
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          npm ci
-          npm run db:generate
-          npm run lint
-          npm run type-check
-          npm run test
-          npx next-openapi-gen generate
-          npx opennextjs-cloudflare build
-        env:
-          NODE_ENV: production
+      # Always run full build process for deployment
+      - name: Install dependencies
+        run: npm ci
 
-      # For workflow_run trigger, download and extract artifacts from CI
-      - name: Download build artifacts
-        if: github.event_name == 'workflow_run'
-        uses: actions/download-artifact@v4
-        with:
-          name: build-artifacts-${{ github.sha }}
-          path: .
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          repository: ${{ github.repository }}
-          run-id: ${{ github.event.workflow_run.id }}
+      - name: Generate Drizzle client
+        run: npm run db:generate
 
-      - name: Extract build artifacts
-        if: github.event_name == 'workflow_run'
-        run: |
-          echo "Extracting build artifacts..."
-          ls -la
-          tar -xzf build-artifacts.tar.gz
-          echo "Verifying extracted files:"
-          ls -la
-          echo "Checking .open-next directory:"
-          ls -la .open-next/ || echo ".open-next directory not found"
-          echo "Checking .open-next/worker.js:"
-          ls -la .open-next/worker.js || echo "worker.js not found"
-
-      - name: Install dependencies for deployment
-        if: github.event_name == 'workflow_run'
-        run: npm ci --production=false
+      - name: Generate OpenAPI documentation
+        run: npx next-openapi-gen generate
 
       - name: Apply database migrations
         run: |
@@ -84,8 +52,9 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
-      - name: Deploy to Cloudflare
-        run: npx opennextjs-cloudflare deploy
+      - name: Build and Deploy to Cloudflare
+        run: npm run deploy
         env:
+          NODE_ENV: production
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
