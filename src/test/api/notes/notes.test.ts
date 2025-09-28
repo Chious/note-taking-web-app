@@ -156,6 +156,37 @@ describe("Notes API", () => {
       expect(body.data.notes[0].title).toBe("Work Meeting Notes");
     });
 
+    it("should filter by content query", async () => {
+      const req = new NextRequest("http://localhost/api/notes?query=Journal");
+      const res = await GET(req);
+      const body = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(body.data.notes).toHaveLength(1); // "Personal Journal" matches both title and content
+      expect(body.data.notes[0].title).toBe("Personal Journal");
+    });
+
+    it("should search in content only (not in title)", async () => {
+      const req = new NextRequest("http://localhost/api/notes?query=items");
+      const res = await GET(req);
+      const body = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(body.data.notes).toHaveLength(1);
+      expect(body.data.notes[0].title).toBe("Shopping List");
+      // "items" is only in content "Shopping items", not in title "Shopping List"
+    });
+
+    it("should search in both title and content", async () => {
+      const req = new NextRequest("http://localhost/api/notes?query=content");
+      const res = await GET(req);
+      const body = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(body.data.notes.length).toBeGreaterThan(0);
+      // Should find notes that have "content" in their content field
+    });
+
     it("should filter by archive status", async () => {
       const req = new NextRequest("http://localhost/api/notes?isArchived=true");
       const res = await GET(req);
