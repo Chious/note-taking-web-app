@@ -35,5 +35,8 @@
       "database_name": "noteapp",
       "database_id": "d1863666-f3e9-4a11-9931-358805aa29fd"
     }
-  ]
+  ],
+  "vars": {
+    "NODE_ENV": "production"
+  }
 }
