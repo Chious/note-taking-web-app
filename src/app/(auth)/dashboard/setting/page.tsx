@@ -18,7 +18,7 @@ export default function SettingPage() {
           Manage your account and preferences
         </p>
       </div>
-      <SettingsSidebar className="w-full" />
+      <SettingsSidebar className="w-full md:hidden" />
     </div>
   );
 }

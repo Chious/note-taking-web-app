@@ -75,27 +75,51 @@ function Editor({
 
     return () => {
       cancelled = true;
-      // keep the editor alive across unmount? If you want to always destroy on unmount:
+      // Clean up editor instance
       if (editorRef.current) {
         try {
-          editorRef.current.destroy();
+          // EditorJS might not have destroy method immediately available
+          // or it might be async. Let's try different cleanup approaches
+          if (
+            editorRef.current.destroy &&
+            typeof editorRef.current.destroy === 'function'
+          ) {
+            editorRef.current.destroy();
+          } else if (
+            editorRef.current.clear &&
+            typeof editorRef.current.clear === 'function'
+          ) {
+            editorRef.current.clear();
+          }
+          // Clear the DOM element as fallback
+          const element = document.getElementById(editorId);
+          if (element) {
+            element.innerHTML = '';
+          }
+        } catch (error) {
+          console.error('Error cleaning up editor:', error);
+        } finally {
+          // Always clear the ref
           editorRef.current = null;
-        } catch {}
+        }
       }
     };
   }, [data, editorId, placeholder, onChange]);
 
   return (
     <div
-      className={cn('flex flex-col gap-4 flex-1 min-h-0 max-h-full', className)}
+      className={cn('h-full w-full overflow-y-scroll', className)}
+      role="application"
+      aria-label="Rich text editor"
     >
       <div
         id={editorId}
-        className="prose prose-lg max-w-none border border-gray-200 rounded-lg p-4 flex-1 overflow-y-scroll focus-within:border-blue-500 min-h-0 max-h-full "
+        className="prose max-w-none"
+        role="textbox"
+        aria-multiline="true"
+        aria-label="Note content editor"
+        tabIndex={0}
       />
-      {!isReady && (
-        <div className="text-center text-gray-500 mt-4">Loading editor...</div>
-      )}
     </div>
   );
 }

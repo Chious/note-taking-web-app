@@ -157,31 +157,40 @@ export function AppSidebar({ className }: SidebarProps) {
           'hidden md:flex flex-col w-64 bg-sidebar border-r border-sidebar-border h-screen',
           className
         )}
+        role="navigation"
+        aria-label="Main navigation"
       >
         <div className="p-6 border-b border-sidebar-border">
-          <Image src="/logo.svg" alt="Note App" width={100} height={100} />
+          <Image src="/logo.svg" alt="Note App Logo" width={100} height={100} />
         </div>
-        <nav className="flex-1 p-4 space-y-6">
+        <nav className="flex-1 p-4 space-y-6" role="navigation" aria-label="Navigation sections">
           {navigationItems.map(section => (
-            <div key={section.section}>
-              <h2 className="text-sm font-semibold text-sidebar-foreground/70 mb-3 uppercase tracking-wide">
+            <section key={section.section} role="group" aria-labelledby={`section-${section.section}`}>
+              <h2 
+                id={`section-${section.section}`}
+                className="text-sm font-semibold text-sidebar-foreground/70 mb-3 uppercase tracking-wide"
+              >
                 {section.title}
               </h2>
-              <ul className="space-y-1">
+              <ul className="space-y-1" role="list">
                 {section.items.map(item => {
                   const Icon = item.icon;
                   const isActive = nav === item.id;
 
                   return (
-                    <li key={item.id}>
+                    <li key={item.id} role="listitem">
                       <button
                         onClick={() => item.onClick?.()}
                         className={cn(
                           'w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors',
+                          'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
                           isActive
                             ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                             : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground'
                         )}
+                        aria-current={isActive ? 'page' : undefined}
+                        aria-label={`${item.label}, ${item.count} items`}
+                        title={`${item.label} (${item.count} items)`}
                       >
                         <div className="flex items-center gap-3">
                           <Icon
@@ -189,6 +198,7 @@ export function AppSidebar({ className }: SidebarProps) {
                               'h-4 w-4 transition-colors',
                               isActive ? 'text-blue-500' : ''
                             )}
+                            aria-hidden="true"
                           />
                           <span>{item.label}</span>
                         </div>
@@ -199,6 +209,7 @@ export function AppSidebar({ className }: SidebarProps) {
                               ? 'bg-sidebar-primary text-sidebar-primary-foreground'
                               : 'bg-muted text-muted-foreground'
                           )}
+                          aria-label={`${item.count} items`}
                         >
                           {item.count}
                         </span>
@@ -207,7 +218,7 @@ export function AppSidebar({ className }: SidebarProps) {
                   );
                 })}
               </ul>
-            </div>
+            </section>
           ))}
         </nav>
       </aside>
@@ -273,8 +284,12 @@ export function AppSidebar({ className }: SidebarProps) {
       </aside>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-sidebar border-t border-sidebar-border">
-        <div className="flex items-center justify-around py-2">
+      <nav 
+        className="md:hidden fixed bottom-0 left-0 right-0 bg-sidebar border-t border-sidebar-border"
+        role="navigation"
+        aria-label="Mobile navigation"
+      >
+        <div className="flex items-center justify-around py-2" role="tablist">
           {mobileNavItems.map(item => {
             const Icon = item.icon;
 
@@ -284,10 +299,16 @@ export function AppSidebar({ className }: SidebarProps) {
                 onClick={() => item.onClick?.()}
                 className={cn(
                   'flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors',
+                  'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
                   item.isActive ? 'text-blue-500' : 'text-sidebar-foreground/70'
                 )}
+                role="tab"
+                aria-selected={item.isActive}
+                aria-current={item.isActive ? 'page' : undefined}
+                aria-label={item.label}
+                title={item.label}
               >
-                <Icon className="h-5 w-5" />
+                <Icon className="h-5 w-5" aria-hidden="true" />
                 <span className="text-xs">{item.label}</span>
               </button>
             );

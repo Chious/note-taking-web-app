@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { createContext, useContext, useEffect, useState } from "react";
-import { ThemeProvider as NextThemeProvider } from "next-themes";
-import "@radix-ui/themes/styles.css";
+import { createContext, useContext, useEffect, useState } from 'react';
+import { ThemeProvider as NextThemeProvider } from 'next-themes';
+import '@radix-ui/themes/styles.css';
 
 type Font = 'sans' | 'serif' | 'mono';
 
@@ -42,42 +42,33 @@ function FontProvider({
 
   useEffect(() => {
     if (!isClient) return;
-    
+
     const root = window.document.documentElement;
-    
+
     // Remove previous font classes from both html and body
     root.classList.remove('font-sans', 'font-serif', 'font-mono');
     document.body.classList.remove('font-sans', 'font-serif', 'font-mono');
-    
+
     // Add current font class to html element (for inheritance)
     root.classList.add(`font-${font}`);
-    
+
     // Also add to body as backup
     document.body.classList.add(`font-${font}`);
-    
+
     // Alternative approach: Set CSS custom property directly
     const fontFamilyMap = {
       sans: 'var(--font-inter)',
-      serif: 'var(--font-noto-serif)', 
-      mono: 'var(--font-source-code-pro)'
+      serif: 'var(--font-noto-serif)',
+      mono: 'var(--font-source-code-pro)',
     };
-    
+
     root.style.setProperty('--current-font-family', fontFamilyMap[font]);
-    
+
     // Save to localStorage
     localStorage.setItem('font-preference', font);
-    
-    // Debug logging
-    console.log('Font changed to:', font);
-    console.log('HTML classes:', root.className);
-    console.log('Body classes:', document.body.className);
-    
+
     // Force a style recalculation
     document.body.style.fontFamily = '';
-    setTimeout(() => {
-      const computedStyle = window.getComputedStyle(document.body);
-      console.log('Computed font-family:', computedStyle.fontFamily);
-    }, 100);
   }, [font, isClient]);
 
   const value = {
@@ -94,11 +85,11 @@ function FontProvider({
 
 export const useFont = () => {
   const context = useContext(FontProviderContext);
-  
+
   if (context === undefined) {
     throw new Error('useFont must be used within a FontProvider');
   }
-  
+
   return context;
 };
 
@@ -124,9 +115,7 @@ export function ThemeProvider({
       disableTransitionOnChange
       {...props}
     >
-      <FontProvider>
-        {children}
-      </FontProvider>
+      <FontProvider>{children}</FontProvider>
     </NextThemeProvider>
   );
 }

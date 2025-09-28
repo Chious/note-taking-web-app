@@ -336,6 +336,8 @@ export const NoteEditor = forwardRef<NoteEditorRef, NoteEditorProps>(
             onClick={handleSave}
             disabled={isLoading || !title.trim()}
             className="min-w-[100px]"
+            data-save-note
+            aria-label="Save note (⌘S)"
           >
             {isLoading ? (
               <>
