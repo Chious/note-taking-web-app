@@ -3,7 +3,7 @@
 import { createContext, useContext, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useKeyboardShortcuts, type KeyboardShortcut } from '@/hooks/use-keyboard-shortcuts';
-import { useNoteSlug } from '@/hooks/use-params';
+import { useNoteId } from '@/hooks/use-params';
 
 interface KeyboardShortcutsContextType {
   shortcuts: KeyboardShortcut[];
@@ -26,7 +26,7 @@ export function KeyboardShortcutsProvider({
   onShowHelp,
 }: KeyboardShortcutsProviderProps) {
   const router = useRouter();
-  const { setSlug } = useNoteSlug();
+  const { setId } = useNoteId();
 
   const handleCreateNote = useCallback(() => {
     if (onCreateNote) {
@@ -34,14 +34,14 @@ export function KeyboardShortcutsProvider({
     } else {
       // Default behavior: navigate to notes page and trigger create
       router.push('/dashboard/notes');
-      setSlug(null);
+      setId(null);
       // Trigger create note action
       setTimeout(() => {
         const createButton = document.querySelector('[data-create-note]') as HTMLButtonElement;
         createButton?.click();
       }, 100);
     }
-  }, [onCreateNote, router, setSlug]);
+  }, [onCreateNote, router, setId]);
 
   const handleSaveNote = useCallback(() => {
     if (onSaveNote) {

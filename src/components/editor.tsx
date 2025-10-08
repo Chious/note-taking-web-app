@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState, memo } from 'react';
+import { useEffect, useRef, memo } from 'react';
 import EditorJS, { OutputData } from '@editorjs/editorjs';
 import Header from '@editorjs/header';
 import List from '@editorjs/list';
@@ -24,7 +24,6 @@ function Editor({
   editorId = 'editorjs',
 }: EditorProps) {
   const editorRef = useRef<EditorJS | null>(null);
-  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -57,7 +56,7 @@ function Editor({
           placeholder: placeholder || "Let's write an awesome story!",
           onReady: () => {
             if (cancelled) return;
-            setIsReady(true);
+            console.log('EditorJS is ready');
           },
           onChange: async () => {
             if (!editorRef.current || !onChange) return;

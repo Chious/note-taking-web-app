@@ -4,7 +4,6 @@ import { mockSession, clearSession } from "../helpers/mockSession";
 import { createTestDb } from "../helpers/testDb";
 import * as dbModule from "@/lib/db";
 import { users, tags, notes, noteTags } from "@/lib/schema";
-import { NextRequest } from "next/server";
 
 describe("Tags API", () => {
   let db: ReturnType<typeof createTestDb>;
@@ -90,8 +89,7 @@ describe("Tags API", () => {
 
   describe("GET /api/tags", () => {
     it("should retrieve all user tags with note counts", async () => {
-      const req = new NextRequest("http://localhost/api/tags");
-      const res = await GET(req);
+      const res = await GET();
       const body = await res.json();
 
       expect(res.status).toBe(200);
@@ -116,8 +114,7 @@ describe("Tags API", () => {
       await db.delete(noteTags);
       await db.delete(tags);
 
-      const req = new NextRequest("http://localhost/api/tags");
-      const res = await GET(req);
+      const res = await GET();
       const body = await res.json();
 
       expect(res.status).toBe(200);
@@ -130,8 +127,7 @@ describe("Tags API", () => {
       // Remove all note-tag relationships
       await db.delete(noteTags);
 
-      const req = new NextRequest("http://localhost/api/tags");
-      const res = await GET(req);
+      const res = await GET();
       const body = await res.json();
 
       expect(res.status).toBe(200);
@@ -142,8 +138,7 @@ describe("Tags API", () => {
 
     it("should return 401 for unauthenticated user", async () => {
       clearSession();
-      const req = new NextRequest("http://localhost/api/tags");
-      const res = await GET(req);
+      const res = await GET();
       const body = await res.json();
 
       expect(res.status).toBe(401);
@@ -169,8 +164,7 @@ describe("Tags API", () => {
         updatedAt: new Date().toISOString(),
       });
 
-      const req = new NextRequest("http://localhost/api/tags");
-      const res = await GET(req);
+      const res = await GET();
       const body = await res.json();
 
       expect(res.status).toBe(200);
@@ -185,8 +179,7 @@ describe("Tags API", () => {
         throw new Error("Database connection failed");
       });
 
-      const req = new NextRequest("http://localhost/api/tags");
-      const res = await GET(req);
+      const res = await GET();
       const body = await res.json();
 
       expect(res.status).toBe(500);

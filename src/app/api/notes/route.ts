@@ -14,15 +14,6 @@ import {
 } from '@/lib/editor-utils';
 import z from 'zod';
 
-export const NotesQueryParams = z.object({
-  title: z.string().optional().describe('Filter by note title'),
-  content: z.string().optional().describe('Filter by note content'),
-  tags: z.string().optional().describe('Filter by tags (comma-separated)'),
-  archived: z.boolean().optional().describe('Filter by archive status'),
-  limit: z.number().optional().describe('Limit number of results'),
-  offset: z.number().optional().describe('Offset for pagination'),
-});
-
 /**
  * Get notes with optional filters
  * @description Retrieve notes with optional filters for title, content, tags, and archive status
