@@ -26,6 +26,12 @@
         "scheme": "bearer",
         "bearerFormat": "JWT",
         "description": "JWT token for authentication. Format: Bearer <token>"
+      },
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "next-auth.session-token",
+        "description": "NextAuth session cookie authentication"
       }
     }
   },

@@ -8,8 +8,9 @@ import { eq, sql } from "drizzle-orm";
 /**
  * Get tags
  * @description Retrieve all user tags with note counts and usage statistics
- * @security cookieAuth
  * @response TagsResponseSchema:Tags retrieved successfully
+ * @auth apikey
+ * @tag Tags
  * @openapi
  */
 export async function GET(_request: NextRequest) {

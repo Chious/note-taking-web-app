@@ -26,6 +26,12 @@
         "scheme": "bearer",
         "bearerFormat": "JWT",
         "description": "JWT token for authentication. Format: Bearer <token>"
+      },
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "next-auth.session-token",
+        "description": "NextAuth session cookie authentication"
       }
     },
     "schemas": {
@@ -161,6 +167,103 @@
             "type": "boolean",
             "nullable": true,
             "description": "Archive status"
+          }
+        }
+      },
+      "Note": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique note identifier"
+          },
+          "userId": {
+            "type": "string",
+            "description": "Owner user ID"
+          },
+          "title": {
+            "type": "string",
+            "description": "Note title"
+          },
+          "content": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EditorContentSchema"
+              }
+            ],
+            "description": "Note content in Editor.js format"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of tag names"
+          },
+          "isArchived": {
+            "type": "boolean",
+            "description": "Archive status"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Creation timestamp"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update timestamp"
+          },
+          "lastEdited": {
+            "type": "string",
+            "description": "Last edit timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "title",
+          "content",
+          "tags",
+          "isArchived",
+          "createdAt",
+          "updatedAt",
+          "lastEdited"
+        ]
+      },
+      "NoteSearchSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "nullable": true,
+            "description": "Search query"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "description": "Filter by tags"
+          },
+          "isArchived": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "Filter by archive status"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "nullable": true,
+            "default": 1,
+            "description": "Page number"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "nullable": true,
+            "default": 20,
+            "description": "Items per page"
           }
         }
       },
@@ -318,6 +421,41 @@
           "success",
           "message"
         ]
+      },
+      "NotesQueryParams": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "nullable": true,
+            "description": "Filter by note title"
+          },
+          "content": {
+            "type": "string",
+            "nullable": true,
+            "description": "Filter by note content"
+          },
+          "tags": {
+            "type": "string",
+            "nullable": true,
+            "description": "Filter by tags (comma-separated)"
+          },
+          "archived": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "Filter by archive status"
+          },
+          "limit": {
+            "type": "number",
+            "nullable": true,
+            "description": "Limit number of results"
+          },
+          "offset": {
+            "type": "number",
+            "nullable": true,
+            "description": "Offset for pagination"
+          }
+        }
       },
       "UserSchema": {
         "type": "object",
@@ -661,12 +799,18 @@
             ],
             "description": "List style"
           },
-          "items": {
-            "type": "array",
-            "items": {
+          "meta": {
+            "type": "object",
+            "additionalProperties": {
               "type": "string"
             },
-            "description": "List items"
+            "nullable": true,
+            "description": "List metadata"
+          },
+          "items": {
+            "type": "array",
+            "items": {},
+            "description": "List items (flexible structure)"
           }
         },
         "required": [
@@ -874,44 +1018,6 @@
           "limit"
         ]
       },
-      "NoteSearchSchema": {
-        "type": "object",
-        "properties": {
-          "query": {
-            "type": "string",
-            "nullable": true,
-            "description": "Search query"
-          },
-          "tags": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "nullable": true,
-            "description": "Filter by tags"
-          },
-          "isArchived": {
-            "type": "boolean",
-            "nullable": true,
-            "description": "Filter by archive status"
-          },
-          "page": {
-            "type": "integer",
-            "minimum": 1,
-            "nullable": true,
-            "default": 1,
-            "description": "Page number"
-          },
-          "limit": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 100,
-            "nullable": true,
-            "default": 20,
-            "description": "Items per page"
-          }
-        }
-      },
       "TagSchema": {
         "type": "object",
         "properties": {
@@ -1013,12 +1119,18 @@
             ],
             "description": "List style"
           },
-          "items": {
-            "type": "array",
-            "items": {
+          "meta": {
+            "type": "object",
+            "additionalProperties": {
               "type": "string"
             },
-            "description": "List items"
+            "nullable": true,
+            "description": "List metadata"
+          },
+          "items": {
+            "type": "array",
+            "items": {},
+            "description": "List items (flexible structure)"
           }
         },
         "required": [
@@ -1191,65 +1303,6 @@
             "description": "Archive status"
           }
         }
-      },
-      "Note": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Unique note identifier"
-          },
-          "userId": {
-            "type": "string",
-            "description": "Owner user ID"
-          },
-          "title": {
-            "type": "string",
-            "description": "Note title"
-          },
-          "content": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EditorContentSchema"
-              }
-            ],
-            "description": "Note content in Editor.js format"
-          },
-          "tags": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Array of tag names"
-          },
-          "isArchived": {
-            "type": "boolean",
-            "description": "Archive status"
-          },
-          "createdAt": {
-            "type": "string",
-            "description": "Creation timestamp"
-          },
-          "updatedAt": {
-            "type": "string",
-            "description": "Last update timestamp"
-          },
-          "lastEdited": {
-            "type": "string",
-            "description": "Last edit timestamp"
-          }
-        },
-        "required": [
-          "id",
-          "userId",
-          "title",
-          "content",
-          "tags",
-          "isArchived",
-          "createdAt",
-          "updatedAt",
-          "lastEdited"
-        ]
       },
       "NotesList": {
         "type": "object",
@@ -1558,6 +1611,62 @@
   },
   "outputDir": "./public",
   "paths": {
+    "/test-auth": {
+      "get": {
+        "operationId": "get-test-auth",
+        "summary": "Test authentication",
+        "description": "Test endpoint to verify JWT bearer token authentication",
+        "tags": [
+          "Authentication"
+        ],
+        "parameters": [],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authentication successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "description": "Response message"
+                    },
+                    "userId": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "exclusiveMinimum": true,
+                      "description": "Authenticated user ID"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "userId"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
     "/docs": {
       "get": {
         "operationId": "get-docs",
@@ -1741,12 +1850,68 @@
     "/notes": {
       "get": {
         "operationId": "get-notes",
-        "summary": "Get notes",
-        "description": "Get notes with optional filters",
+        "summary": "Get notes with optional filters",
+        "description": "Retrieve notes with optional filters for title, content, tags, and archive status",
         "tags": [
           "Notes"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "query",
+            "schema": {
+              "type": "string",
+              "description": "Search query"
+            },
+            "required": false,
+            "description": "Search query"
+          },
+          {
+            "in": "query",
+            "name": "tags",
+            "schema": {
+              "type": "array",
+              "description": "Filter by tags"
+            },
+            "required": false,
+            "description": "Filter by tags"
+          },
+          {
+            "in": "query",
+            "name": "isArchived",
+            "schema": {
+              "type": "boolean",
+              "description": "Filter by archive status"
+            },
+            "required": false,
+            "description": "Filter by archive status"
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "description": "Page number"
+            },
+            "required": false,
+            "description": "Page number"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "description": "Items per page"
+            },
+            "required": false,
+            "description": "Items per page"
+          }
+        ],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Notes retrieved successfully",
@@ -1788,6 +1953,11 @@
           "Notes"
         ],
         "parameters": [],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1867,6 +2037,11 @@
           "Notes"
         ],
         "parameters": [],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Note retrieved successfully",
@@ -1908,6 +2083,11 @@
           "Notes"
         ],
         "parameters": [],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1983,12 +2163,75 @@
           "Notes"
         ],
         "parameters": [],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Note deleted successfully",
+            "description": "Successful response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Unique note identifier"
+                    },
+                    "userId": {
+                      "type": "string",
+                      "description": "Owner user ID"
+                    },
+                    "title": {
+                      "type": "string",
+                      "description": "Note title"
+                    },
+                    "content": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/EditorContentSchema"
+                        }
+                      ],
+                      "description": "Note content in Editor.js format"
+                    },
+                    "tags": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Array of tag names"
+                    },
+                    "isArchived": {
+                      "type": "boolean",
+                      "description": "Archive status"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "description": "Creation timestamp"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "description": "Last update timestamp"
+                    },
+                    "lastEdited": {
+                      "type": "string",
+                      "description": "Last edit timestamp"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "userId",
+                    "title",
+                    "content",
+                    "tags",
+                    "isArchived",
+                    "createdAt",
+                    "updatedAt",
+                    "lastEdited"
+                  ]
+                }
               }
             }
           },
@@ -2094,6 +2337,11 @@
           "Tags"
         ],
         "parameters": [],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Tags retrieved successfully",
@@ -2121,62 +2369,6 @@
           },
           "400": {
             "$ref": "#/components/responses/400"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        }
-      }
-    },
-    "/test-auth": {
-      "get": {
-        "operationId": "get-test-auth",
-        "summary": "@auth bearer",
-        "description": "",
-        "tags": [
-          "Test-auth"
-        ],
-        "parameters": [],
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Authentication successful",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "description": "Response message"
-                    },
-                    "userId": {
-                      "type": "integer",
-                      "minimum": 0,
-                      "exclusiveMinimum": true,
-                      "description": "Authenticated user ID"
-                    }
-                  },
-                  "required": [
-                    "message",
-                    "userId"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
           },
           "500": {
             "$ref": "#/components/responses/500"

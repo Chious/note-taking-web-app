@@ -14,11 +14,22 @@ import {
 } from '@/lib/editor-utils';
 import z from 'zod';
 
+export const NotesQueryParams = z.object({
+  title: z.string().optional().describe('Filter by note title'),
+  content: z.string().optional().describe('Filter by note content'),
+  tags: z.string().optional().describe('Filter by tags (comma-separated)'),
+  archived: z.boolean().optional().describe('Filter by archive status'),
+  limit: z.number().optional().describe('Limit number of results'),
+  offset: z.number().optional().describe('Offset for pagination'),
+});
+
 /**
- * Get notes
- * @description Get notes with optional filters
- * @security cookieAuth
+ * Get notes with optional filters
+ * @description Retrieve notes with optional filters for title, content, tags, and archive status
+ * @params NoteSearchSchema
  * @response NotesResponseSchema:Notes retrieved successfully
+ * @auth apikey
+ * @tag Notes
  * @openapi
  */
 export async function GET(request: NextRequest) {
@@ -162,9 +173,10 @@ export async function GET(request: NextRequest) {
 /**
  * Create note
  * @description Create a new note with title, content, and optional tags
- * @security cookieAuth
  * @body CreateNoteSchema
- * @response NoteResponseSchema:Note created successfully
+ * @response 201:NoteResponseSchema:Note created successfully
+ * @auth apikey
+ * @tag Notes
  * @openapi
  */
 export async function POST(request: NextRequest) {

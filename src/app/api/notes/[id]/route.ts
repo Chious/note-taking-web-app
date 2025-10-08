@@ -15,8 +15,9 @@ import z from "zod";
 /**
  * Get note by ID
  * @description Retrieve a specific note by its ID with tags
- * @security cookieAuth
  * @response NoteResponseSchema:Note retrieved successfully
+ * @auth apikey
+ * @tag Notes
  * @openapi
  */
 export async function GET(
@@ -74,9 +75,10 @@ export async function GET(
 /**
  * Update note
  * @description Update an existing note's title, content, tags, or archive status
- * @security cookieAuth
  * @body UpdateNoteSchema
  * @response NoteResponseSchema:Note updated successfully
+ * @auth apikey
+ * @tag Notes
  * @openapi
  */
 export async function PUT(
@@ -258,8 +260,9 @@ export async function PUT(
 /**
  * Delete note
  * @description Permanently delete a note and its associated tags
- * @security cookieAuth
- * @response 200:object:Note deleted successfully
+ * @response 200:Note deleted successfully
+ * @auth apikey
+ * @tag Notes
  * @openapi
  */
 export async function DELETE(

@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import { getUserIdFromRequest } from "@/lib/auth";
 
 /**
+ * Test authentication
+ * @description Test endpoint to verify JWT bearer token authentication
  * @auth bearer
  * @response AuthTestResponseSchema:Authentication successful
  * @responseSet auth
+ * @tag Authentication
  * @openapi
  */
 export async function GET(request: Request) {

@@ -154,7 +154,7 @@ export function useNotes(params: NoteSearch = { page: 1, limit: 20 }) {
     queryKey: noteKeys.list(params),
     queryFn: () => fetchNotes(params),
     enabled: !!session?.user?.id,
-    staleTime: 0, // TODO: set to 5 minute cache (5 * 60 * 1000)
+    staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
 }
@@ -166,7 +166,7 @@ export function useNote(id: string) {
     queryKey: noteKeys.detail(id),
     queryFn: () => fetchNote(id),
     enabled: !!session?.user?.id && !!id,
-    staleTime: 0, // TODO: set to 5 minute cache (5 * 60 * 1000)
+    staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
 }
