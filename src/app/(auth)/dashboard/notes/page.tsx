@@ -5,7 +5,7 @@ import { NoteEditor, type NoteEditorRef } from "@/components/note-editor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  useNoteSlug,
+  useNoteId,
   useTagFilter,
   useSearchQuery,
   useNavParam,
@@ -30,7 +30,7 @@ const templateNote: Partial<Note> = {
 };
 
 export default function NotesPage() {
-  const { slug, setSlug } = useNoteSlug();
+  const { id, setId } = useNoteId();
   const { tag, setTag } = useTagFilter();
   const { query, setQuery } = useSearchQuery();
   const { nav, setNav } = useNavParam();
@@ -92,19 +92,19 @@ export default function NotesPage() {
   const [isCreatingNote, setIsCreatingNote] = useState(false);
 
   const handleCreateNote = () => {
-    setSlug(null); // Clear any selected note
+    setId(null); // Clear any selected note
     setDisplayNote(templateNote);
     setIsCreatingNote(true); // Set creating note state
   };
 
   const handleDeleteSuccess = () => {
-    setSlug(null);
+    setId(null);
     setIsCreatingNote(false);
     setDisplayNote(null);
   };
 
   const handleArchiveSuccess = () => {
-    setSlug(null);
+    setId(null);
     setIsCreatingNote(false);
     setDisplayNote(null);
   };
@@ -118,7 +118,7 @@ export default function NotesPage() {
   // Mobile view: Show different content based on navigation state
   const renderMobileView = () => {
     // Show note editor on mobile when note is selected or creating new note
-    if (!nav && ((slug && displayNote) || (isCreatingNote && displayNote))) {
+    if (!nav && ((id && displayNote) || (isCreatingNote && displayNote))) {
       return (
         <div className="flex flex-col h-full">
           <div className="flex items-center gap-3 p-4 border-b">
@@ -126,7 +126,7 @@ export default function NotesPage() {
               variant="ghost"
               size="sm"
               onClick={() => {
-                setSlug(null);
+                setId(null);
                 setIsCreatingNote(false);
                 setDisplayNote(null);
               }}
@@ -168,7 +168,7 @@ export default function NotesPage() {
               size="sm"
               className="text-gray-500"
               onClick={() => {
-                setSlug(null);
+                setId(null);
                 setIsCreatingNote(false);
                 setDisplayNote(null);
               }}
@@ -192,7 +192,7 @@ export default function NotesPage() {
               ref={noteEditorRef}
               note={displayNote}
               onCancel={() => {
-                setSlug(null);
+                setId(null);
                 setIsCreatingNote(false);
                 setDisplayNote(null);
               }}
@@ -302,7 +302,7 @@ export default function NotesPage() {
                   key={item.id}
                   variant="ghost"
                   className="w-full h-auto flex flex-col items-start gap-2 p-4 text-left border border-border hover:bg-muted"
-                  onClick={() => setSlug(item.id)}
+                  onClick={() => setId(item.id)}
                 >
                   <h3 className="font-semibold text-base">{item.title}</h3>
                   <div className="flex gap-1 flex-wrap">
@@ -369,7 +369,7 @@ export default function NotesPage() {
                 variant="ghost"
                 className="w-full h-auto flex flex-col items-start gap-2 p-4 text-left border border-border hover:bg-muted"
                 onClick={() => {
-                  setSlug(item.id);
+                  setId(item.id);
                   setDisplayNote(item);
                 }}
               >
@@ -481,12 +481,12 @@ export default function NotesPage() {
                 key={item.id}
                 variant="ghost"
                 className={`w-full h-fit flex items-start flex-col gap-3 justify-between text-left border border-solid p-4 whitespace-normal ${
-                  slug === item.id
+                  id === item.id
                     ? "bg-gray-200 text-black border-none"
                     : "bg-secondary text-secondary-foreground hover:bg-muted border-border"
                 }`}
                 onClick={() => {
-                  setSlug(item.id);
+                  setId(item.id);
                   setDisplayNote(item);
                 }}
               >
@@ -531,7 +531,7 @@ export default function NotesPage() {
               ref={noteEditorRef}
               note={displayNote}
               onCancel={() => {
-                setSlug(null);
+                setId(null);
                 setIsCreatingNote(false);
                 setDisplayNote(null);
               }}
@@ -569,14 +569,14 @@ export default function NotesPage() {
               triggerText="Archive Note"
               type="archiveNote"
               noteId={displayNote.id || ""}
-              onSuccess={() => setSlug(null)}
+              onSuccess={() => setId(null)}
             />
             <NoteDialog
               triggerText="Delete Note"
               type="deleteNote"
               noteId={displayNote.id || ""}
               onSuccess={() => {
-                setSlug(null);
+                setId(null);
                 setDisplayNote(null);
               }}
             />

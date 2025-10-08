@@ -48,14 +48,14 @@ The application uses a single-page approach with URL parameters for state manage
 
   - `tag`: Filter notes by specific tag (string)
   - `q`: Search query string for filtering notes
-  - `slug`: Currently selected note slug for editing
+  - `id`: Currently selected note ID for editing
 
 - **Example URLs:**
   - `/dashboard/notes` - Default all notes view
   - `/dashboard/notes?nav=archived` - Archived notes
   - `/dashboard/notes?tag=Dev` - Notes tagged with "Dev"
   - `/dashboard/notes?q=react` - Search for "react"
-  - `/dashboard/notes?slug=react-performance-optimization` - Edit specific note
+  - `/dashboard/notes?id=cm123abc456` - Edit specific note
   - `/dashboard/notes?nav=tags&tag=TypeScript` - Mobile: browsing tags, filtered by TypeScript
 
 #### Settings Routes: `/dashboard/setting`
@@ -70,64 +70,60 @@ The application uses a single-page approach with URL parameters for state manage
 
 ### Authentication Endpoints
 
-| Method | Endpoint                  | Description                        | Authentication | Task Reference |
-| ------ | ------------------------- | ---------------------------------- | -------------- | -------------- |
-| `POST` | `/api/register`           | User registration (email/password) | Public         | Task 3         |
-| `POST` | `/api/login`              | User login (email/password)        | Public         | Task 3         |
-| `GET`  | `/api/auth/[...nextauth]` | NextAuth.js endpoints              | Public         | Task 3         |
-| `POST` | `/api/auth/[...nextauth]` | NextAuth.js endpoints              | Public         | Task 3         |
-| `POST` | `/api/forgot-password`    | Password reset request             | Public         | Task 4         |
-| `POST` | `/api/reset-password`     | Password reset confirmation        | Public         | Task 4         |
-| `POST` | `/api/auth/signout`       | User logout                        | Authenticated  | Task 3         |
+| Method | Endpoint                  | Description                        | Authentication | Status |
+| ------ | ------------------------- | ---------------------------------- | -------------- | ------ |
+| `POST` | `/api/register`           | User registration (email/password) | Public         | ✅ Implemented |
+| `POST` | `/api/login`              | User login (returns JWT token)     | Public         | ✅ Implemented |
+| `GET`  | `/api/auth/[...nextauth]` | NextAuth.js endpoints (cookie-based) | Public       | ✅ Implemented |
+| `POST` | `/api/auth/[...nextauth]` | NextAuth.js endpoints (cookie-based) | Public       | ✅ Implemented |
+| `GET`  | `/api/test-auth`          | Test JWT Bearer token authentication | Bearer Token | ✅ Implemented |
+| `POST` | `/api/forgot-password`    | Password reset request             | Public         | 🚧 Planned |
+| `POST` | `/api/reset-password`     | Password reset confirmation        | Public         | 🚧 Planned |
+
+**Authentication System:**
+- **Primary**: NextAuth.js with cookie-based sessions (used by Notes and Tags APIs)
+- **Secondary**: JWT Bearer tokens (used by `/api/test-auth` endpoint)
+- **Note**: `/api/login` returns a JWT token, but the main application uses NextAuth cookies
 
 ### Notes Management Endpoints
 
-| Method   | Endpoint                  | Description            | Authentication | Task Reference |
-| -------- | ------------------------- | ---------------------- | -------------- | -------------- |
-| `GET`    | `/api/notes`              | List all user notes    | Required       | Task 5         |
-| `POST`   | `/api/notes`              | Create new note        | Required       | Task 5         |
-| `GET`    | `/api/notes/[id]`         | Get specific note      | Required       | Task 5         |
-| `PUT`    | `/api/notes/[id]`         | Update note            | Required       | Task 5         |
-| `DELETE` | `/api/notes/[id]`         | Delete note            | Required       | Task 5         |
-| `PATCH`  | `/api/notes/[id]/archive` | Archive/unarchive note | Required       | Task 5         |
+| Method   | Endpoint          | Description                          | Authentication | Status |
+| -------- | ----------------- | ------------------------------------ | -------------- | ------ |
+| `GET`    | `/api/notes`      | List all user notes with filtering   | NextAuth Cookie | ✅ Implemented |
+| `POST`   | `/api/notes`      | Create new note                      | NextAuth Cookie | ✅ Implemented |
+| `GET`    | `/api/notes/[id]` | Get specific note                    | NextAuth Cookie | ✅ Implemented |
+| `PUT`    | `/api/notes/[id]` | Update note (title, content, tags, archive) | NextAuth Cookie | ✅ Implemented |
+| `DELETE` | `/api/notes/[id]` | Delete note                          | NextAuth Cookie | ✅ Implemented |
 
-### Note History Endpoints
+**Query Parameters for GET `/api/notes`:**
+- `query`: Search in title and content
+- `tags`: Filter by tags (comma-separated)
+- `isArchived`: Filter by archive status (true/false)
+- `page`: Page number (default: 1)
+- `limit`: Items per page (default: 20)
 
-| Method | Endpoint                            | Description                 | Authentication | Task Reference |
-| ------ | ----------------------------------- | --------------------------- | -------------- | -------------- |
-| `GET`  | `/api/notes/[id]/history`           | Get note edit history       | Required       | Task 5         |
-| `GET`  | `/api/notes/[id]/history/[version]` | Get specific version        | Required       | Task 5         |
-| `POST` | `/api/notes/[id]/restore`           | Restore to specific version | Required       | Task 5         |
+### Tags Management Endpoints
 
-### Search and Filtering Endpoints
+| Method | Endpoint    | Description                           | Authentication | Status |
+| ------ | ----------- | ------------------------------------- | -------------- | ------ |
+| `GET`  | `/api/tags` | Get all user tags with note counts    | NextAuth Cookie | ✅ Implemented |
 
-| Method | Endpoint                  | Description               | Authentication | Task Reference |
-| ------ | ------------------------- | ------------------------- | -------------- | -------------- |
-| `GET`  | `/api/search`             | Advanced note search      | Required       | Task 6         |
-| `GET`  | `/api/tags`               | Get all user tags         | Required       | Task 6         |
-| `GET`  | `/api/notes/by-tag/[tag]` | Get notes by specific tag | Required       | Task 6         |
+### System Endpoints
 
-### User Management Endpoints
+| Method | Endpoint      | Description                    | Authentication | Status |
+| ------ | ------------- | ------------------------------ | -------------- | ------ |
+| `GET`  | `/api/health` | Health check and database ping | Public         | ✅ Implemented |
+| `GET`  | `/api/docs`   | OpenAPI specification (JSON)   | Public         | ✅ Implemented |
 
-| Method | Endpoint                    | Description             | Authentication | Task Reference |
-| ------ | --------------------------- | ----------------------- | -------------- | -------------- |
-| `GET`  | `/api/user/profile`         | Get user profile        | Required       | Task 11        |
-| `PUT`  | `/api/user/profile`         | Update user profile     | Required       | Task 11        |
-| `PUT`  | `/api/user/preferences`     | Update user preferences | Required       | Task 11        |
-| `POST` | `/api/user/change-password` | Change password         | Required       | Task 4         |
+### Planned Features (Not Yet Implemented)
 
-### File Upload Endpoints (Bonus Features)
+The following endpoints are planned for future implementation:
 
-| Method   | Endpoint                 | Description           | Authentication | Task Reference |
-| -------- | ------------------------ | --------------------- | -------------- | -------------- |
-| `POST`   | `/api/upload/image`      | Upload image to S3    | Required       | Task 14        |
-| `DELETE` | `/api/upload/image/[id]` | Delete uploaded image | Required       | Task 14        |
-
-### WebSocket Endpoints (Bonus Features)
-
-| Endpoint      | Description                                      | Authentication | Task Reference |
-| ------------- | ------------------------------------------------ | -------------- | -------------- |
-| `/api/socket` | WebSocket connection for real-time collaboration | Required       | Task 13        |
+- **Note History**: Version tracking and restore functionality
+- **Advanced Search**: Full-text search with filters
+- **User Profile Management**: Profile updates and preferences
+- **File Uploads**: Image and file attachment support
+- **Real-time Collaboration**: WebSocket-based collaborative editing
 
 ## Route Protection and Middleware
 
@@ -295,7 +291,7 @@ Dynamic breadcrumbs and headers based on current route and state:
 | `/dashboard/notes?q=react`        | "Search: react"             | "Search: react"                 |
 | `/dashboard/notes?nav=tags`       | N/A (desktop sidebar)       | "All Tags"                      |
 | `/dashboard/notes?nav=search`     | N/A (desktop header search) | "Search"                        |
-| `/dashboard/notes?slug=note-slug` | Note title                  | Note title (with back button)   |
+| `/dashboard/notes?id=note-id` | Note title                  | Note title (with back button)   |
 | `/dashboard/setting`              | Page title                  | "Settings" (with back to notes) |
 | `/dashboard/setting/theme`        | Page title                  | Breadcrumb navigation           |
 | `/dashboard/setting/font`         | Page title                  | Breadcrumb navigation           |
@@ -397,7 +393,7 @@ The mobile interface switches between different full-screen views based on URL p
    - Shows all notes with create button
    - Tapping a note opens the editor
 
-2. **Note Editor** (`/dashboard/notes?slug=note-slug`)
+2. **Note Editor** (`/dashboard/notes?id=note-id`)
 
    - Full-screen editor with back button
    - Note metadata and tags
@@ -431,7 +427,7 @@ interface URLParams {
   nav: string | null; // Navigation context
   q: string | null; // Search query
   tag: string | null; // Tag filter
-  slug: string | null; // Selected note
+  id: string | null; // Selected note ID
 }
 ```
 
@@ -444,7 +440,7 @@ Examples:
 - Tap "Search" → nav=search → Search interface
 - Tap "Tags" → nav=tags → Tags list interface
 - Tap "Archive" → nav=archived → Archived notes
-- Select note → slug=note-id → Note editor
+- Select note → id=note-id → Note editor
 ```
 
 ## Theme and Font Customization System

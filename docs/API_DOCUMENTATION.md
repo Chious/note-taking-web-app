@@ -9,15 +9,15 @@ Complete API reference for the Note-Taking Web App with interactive documentatio
 
 | Category           | Endpoints                           | Authentication | Key Features                                  |
 | ------------------ | ----------------------------------- | -------------- | --------------------------------------------- |
-| **Authentication** | `/register`, `/login`, `/test-auth` | None (public)  | JWT tokens, user management                   |
-| **Notes**          | `/notes`, `/notes/{id}`             | Bearer token   | CRUD operations, Editor.js content, filtering |
-| **Tags**           | `/tags`                             | Bearer token   | Tag management, usage statistics              |
+| **Authentication** | `/register`, `/login`, `/test-auth` | None (public)  | NextAuth cookies, JWT tokens                  |
+| **Notes**          | `/notes`, `/notes/{id}`             | NextAuth Cookie | CRUD operations, Editor.js content, filtering |
+| **Tags**           | `/tags`                             | NextAuth Cookie | Tag management, usage statistics              |
 | **System**         | `/health`, `/docs`                  | None (public)  | Health checks, OpenAPI spec                   |
 
 ### Base Configuration
 
 - **Base URL**: `http://localhost:3000/api` (dev) / `https://yourdomain.com/api` (prod)
-- **Authentication**: JWT Bearer Token
+- **Authentication**: NextAuth session cookies (primary) / JWT Bearer Token (secondary)
 - **Content-Type**: `application/json`
 
 ## 📋 Table of Contents
@@ -112,7 +112,7 @@ graph TB
 
 ### Backend
 
-- **Framework**: Next.js 14 with App Router
+- **Framework**: Next.js 15.5.2 with App Router
 - **Database**: Cloudflare D1 (SQLite) with Drizzle ORM
 - **Authentication**: JWT tokens with NextAuth.js
 - **API Documentation**: next-openapi-gen with Scalar UI
@@ -120,10 +120,10 @@ graph TB
 
 ### Frontend
 
-- **Framework**: React 19 with Next.js
-- **Styling**: Tailwind CSS with Radix UI components
-- **State Management**: React Context + useState/useEffect
-- **Editor**: Editor.js for rich text editing
+- **Framework**: React 19.1.0 with Next.js 15.5.2
+- **Styling**: Tailwind CSS v4 with Radix UI components
+- **State Management**: TanStack React Query 5.90.1 + React Context
+- **Editor**: Editor.js 2.31.0 for rich text editing
 
 ### Development Tools
 
@@ -283,19 +283,48 @@ export const noteTags = sqliteTable(
 
 ## 🔐 Authentication
 
-### JWT Bearer Token
+### Dual Authentication System
 
-Most protected endpoints require authentication:
+The application uses two authentication methods:
+
+#### 1. NextAuth Session Cookies (Primary)
+
+**Used by**: Notes API, Tags API
+
+- **Method**: Cookie-based session authentication
+- **Cookie Name**: `next-auth.session-token`
+- **How to authenticate**:
+  1. Sign in through the web UI at `/` or use NextAuth endpoints
+  2. Session cookie is automatically set
+  3. All subsequent requests include the cookie automatically
+
+**For API Testing (Postman/cURL)**:
+```bash
+# Sign in through NextAuth
+POST /api/auth/callback/credentials
+Content-Type: application/x-www-form-urlencoded
+email=user@example.com&password=password123
+
+# Then use the session cookie in subsequent requests
+GET /api/notes
+Cookie: next-auth.session-token=<session-token>
+```
+
+#### 2. JWT Bearer Token (Secondary)
+
+**Used by**: `/api/test-auth` endpoint
+
+- **Method**: JWT token in Authorization header
+- **How to authenticate**:
+  1. Login: `POST /api/login`
+  2. Get JWT token from response
+  3. Use token in Authorization header
 
 ```http
 Authorization: Bearer <your-jwt-token>
 ```
 
-### Getting a Token
-
-1. Register: `POST /api/register`
-2. Login: `POST /api/login`
-3. Use the returned `token` in Authorization header
+**Note**: The `/api/login` endpoint returns a JWT token, but the main Notes and Tags APIs use NextAuth cookies, not JWT tokens.
 
 ## 📝 API Endpoints
 
@@ -306,19 +335,24 @@ flowchart TD
     Start([Client Request]) --> Auth{Authentication Required?}
 
     Auth -->|No| Public[Public Endpoints]
-    Auth -->|Yes| Token{Valid JWT Token?}
+    Auth -->|Yes| AuthType{Which Auth Type?}
 
-    Token -->|No| Unauthorized[401 Unauthorized]
-    Token -->|Yes| Protected[Protected Endpoints]
+    AuthType -->|NextAuth Cookie| Cookie{Valid Session Cookie?}
+    AuthType -->|JWT Bearer| Token{Valid JWT Token?}
+
+    Cookie -->|No| Unauthorized[401 Unauthorized]
+    Cookie -->|Yes| CookieProtected[Cookie-Protected Endpoints]
+    Token -->|No| Unauthorized
+    Token -->|Yes| TokenProtected[Token-Protected Endpoints]
 
     Public --> Register[POST /register]
-    Public --> Login[POST /login]
+    Public --> Login[POST /login<br/>Returns JWT]
     Public --> Health[GET /health]
     Public --> Docs[GET /docs]
 
-    Protected --> Notes[Notes API]
-    Protected --> Tags[Tags API]
-    Protected --> TestAuth[GET /test-auth]
+    CookieProtected --> Notes[Notes API<br/>NextAuth Cookie]
+    CookieProtected --> Tags[Tags API<br/>NextAuth Cookie]
+    TokenProtected --> TestAuth[GET /test-auth<br/>JWT Bearer]
 
     Notes --> GetNotes[GET /notes<br/>Filter & Pagination]
     Notes --> CreateNote[POST /notes<br/>Create with Editor.js]
@@ -329,7 +363,7 @@ flowchart TD
     Tags --> GetTags[GET /tags<br/>With Usage Stats]
 
     Register --> Success201[201 Created]
-    Login --> Success200[200 OK + JWT]
+    Login --> Success200[200 OK + JWT Token]
     Health --> HealthStatus[200 OK + Stats]
 
     GetNotes --> NotesResponse[200 OK + Notes Array]
@@ -339,13 +373,15 @@ flowchart TD
     DeleteNote --> NoteDeleted[200 OK + Deleted]
 
     GetTags --> TagsResponse[200 OK + Tags Array]
+    TestAuth --> AuthSuccess[200 OK + User ID]
 
     style Start fill:#e3f2fd
     style Unauthorized fill:#ffebee
     style Success201 fill:#e8f5e8
     style Success200 fill:#e8f5e8
     style Public fill:#fff3e0
-    style Protected fill:#f3e5f5
+    style CookieProtected fill:#f3e5f5
+    style TokenProtected fill:#e1f5fe
 ```
 
 ### Available Endpoints

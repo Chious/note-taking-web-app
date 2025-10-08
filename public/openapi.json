@@ -15,7 +15,7 @@
       "description": "Local development server"
     },
     {
-      "url": "https://your-domain.com/api",
+      "url": "https://noteapp.chu23294752.workers.dev/api",
       "description": "Production server"
     }
   ],

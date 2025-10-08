@@ -2,19 +2,6 @@
 
 A full-stack note-taking web application with user authentication, CRUD operations, search functionality, and theming capabilities. Built with Next.js 15, React 19, Tailwind CSS v4, Cloudflare D1 (SQLite), and Drizzle ORM. Deployed on Cloudflare Workers with R2 storage.
 
-## 🚀 Project Status
-
-**Current Progress: Task 0 - Planning & Setup Complete**
-
-✅ Task Master initialized and configured  
-✅ PRD (Product Requirements Document) created  
-✅ Database schema designed with edit history support  
-✅ Google OAuth integration planned  
-✅ 15 development tasks defined and ready
-✅ Global Style setup and Tailwind CSS integration
-
-**Next Steps:** Begin Task 1 - Project Setup and Configuration
-
 ## 📋 Table of Contents
 
 - [Features](#features)
@@ -36,9 +23,9 @@ A full-stack note-taking web application with user authentication, CRUD operatio
 
 ### Authentication & Security
 
-- **Dual Authentication**: Email/password and Google OAuth 2.0 login
-- **Protected Routes**: JWT-based authentication with session management
-- **Password Recovery**: Email-based password reset for traditional accounts
+- **Protected Routes**: Authorization with Next-Auth, which is a Cookie-based authentication system
+- **Dual Authentication( Planned 📝)**: Email/password and Google OAuth 2.0 login
+- **Password Recovery(Planned 📝)**: Email-based password reset for traditional accounts
 
 ### User Experience
 
@@ -133,12 +120,13 @@ graph TB
 - **NextAuth.js 4.24.11** for authentication
 - **JWT** for session management with bcryptjs for password hashing
 - **@opennextjs/cloudflare 1.8.0** for Cloudflare Workers deployment
+- **next-openapi-gen** for API documentation
 
 ### Database & Storage
 
 - **Cloudflare D1** (SQLite) as primary database
 - **Drizzle ORM** for database management and migrations
-- **Cloudflare R2** for object storage (images, files)
+- **Cloudflare R2(Planned 📝)** for object storage (images, files)
 - **Better SQLite3** for local development
 
 ### DevOps & Testing
@@ -165,7 +153,7 @@ note-taking-web-app/
 │   ├── ENVIRONMENT_SETUP.md  # Development setup guide
 │   ├── API_DOCUMENTATION.md  # API documentation
 │   └── references/           # Reference documentation
-├── migrations/               # Drizzle ORM database migrations
+├── migrations/               # Drizzle ORM database migrations(and SQL Schema for D1)
 │   ├── meta/                 # Migration metadata
 │   └── *.sql                 # SQL migration files
 ├── scripts/                  # Development and deployment scripts
@@ -186,26 +174,6 @@ note-taking-web-app/
 │   └── types/                # TypeScript type definitions
 └── public/                   # Static assets
 ```
-
-## 📋 Development Tasks
-
-The project is organized into 15 main development tasks using Task Master:
-
-1. **Project Setup** - Next.js 15, TypeScript, Tailwind CSS v4, Cloudflare
-2. **Database Schema** - Drizzle ORM, Cloudflare D1, OAuth models
-3. **Authentication System** - Email/password + Google OAuth
-4. **Password Reset** - Email-based recovery system
-5. **Note CRUD API** - Create, read, update, delete with history
-6. **Search & Filtering** - Advanced search functionality
-7. **UI Layout** - Responsive design and navigation
-8. **Authentication UI** - Login/register forms with OAuth
-9. **Note Editor** - Editor.js rich text editor with plugins
-10. **Dashboard UI** - Note listing and management
-11. **Theming** - Light/dark mode and font options
-12. **Accessibility** - Keyboard navigation and a11y
-13. **Real-time Features** - WebSocket collaboration (bonus)
-14. **Image Upload** - S3-compatible storage (bonus)
-15. **Testing & Deployment** - Comprehensive testing setup
 
 ## 🚀 Getting Started
 
@@ -231,31 +199,193 @@ The project is organized into 15 main development tasks using Task Master:
    npm install
    ```
 
-3. **Set up environment variables**
+3. **Install and authenticate Wrangler CLI**
 
    ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
+   # Install Wrangler globally (if not already installed)
+   npm install -g wrangler
+
+   # Login to Cloudflare (opens OAuth flow in browser)
+   wrangler login
+
+   # Verify authentication
+   wrangler whoami
    ```
 
-4. **Set up Cloudflare D1 database**
+4. **Create Cloudflare resources (first-time setup)**
 
    ```bash
-   # Generate database schema
+   # Create D1 database
+   wrangler d1 create noteapp
+   # Copy the database_id from output and update wrangler.jsonc
+
+   # Create R2 bucket for caching (optional)
+   wrangler r2 bucket create note-taking-app-cache
+   ```
+
+5. **Set up environment variables**
+
+   ```bash
+   # Copy environment template
+   cp .env.example .dev.vars
+
+   # Edit .dev.vars with your configuration
+   # Required variables:
+   # - JWT_SECRET (at least 32 characters)
+   # - NEXTAUTH_SECRET (at least 32 characters)
+   # - NEXTAUTH_URL (http://localhost:3000 for local dev)
+   ```
+
+6. **Initialize and migrate database**
+
+   ```bash
+   # Generate Drizzle schema
    npm run db:generate
-   
-   # Apply migrations locally
+
+   # Apply migrations to local D1 database
    npm run db:migrate
-   
+
    # Optional: Seed database with sample data
    npm run db:seed
    ```
 
-5. **Start development server**
+7. **Start development server**
 
    ```bash
    npm run dev           # Start Next.js development server
    ```
+
+8. **Verify setup**
+
+   ```bash
+   # Check database tables
+   npm run db:tables
+
+   # Check migration status
+   npm run db:status
+
+   # Test API health endpoint
+   curl http://localhost:3000/api/health
+   ```
+
+### Important Notes
+
+**Database Configuration:**
+
+- The `wrangler.jsonc` file contains a pre-configured `database_id`. If you're setting up a new project, you'll need to:
+  1. Create your own D1 database using `wrangler d1 create noteapp`
+  2. Update the `database_id` in `wrangler.jsonc` with your new database ID
+  3. Update the `database_id` in the D1 bindings section
+
+**Environment Files:**
+
+- `.dev.vars` - Local development environment variables (not committed to git)
+- `.env.example` - Template for environment variables
+- Cloudflare Dashboard - Production environment variables
+
+**First-Time Setup Checklist:**
+
+- [ ] Wrangler CLI installed and authenticated
+- [ ] D1 database created and ID updated in `wrangler.jsonc`
+- [ ] `.dev.vars` file created with required secrets
+- [ ] Database migrations applied (`npm run db:migrate`)
+- [ ] Development server running (`npm run dev`)
+- [ ] Health check passing (`curl http://localhost:3000/api/health`)
+
+### Troubleshooting
+
+**Issue: "Database not found" error**
+
+```bash
+# Ensure D1 database exists
+wrangler d1 list
+
+# If not exists, create it
+wrangler d1 create noteapp
+
+# Update wrangler.jsonc with the database_id from output
+```
+
+**Issue: "Unauthorized" when calling APIs**
+
+```bash
+# For NextAuth endpoints (/api/notes, /api/tags):
+# 1. Sign in through the web UI at http://localhost:3000
+# 2. Session cookie will be automatically set
+
+# For JWT endpoints (/api/test-auth):
+# 1. Call POST /api/login to get a token
+# 2. Use Authorization: Bearer <token> header
+```
+
+**Issue: Migrations not applying**
+
+```bash
+# Reset local database
+npm run db:reset
+
+# Regenerate schema
+npm run db:generate
+
+# Apply migrations
+npm run db:migrate
+```
+
+### GitHub Actions Setup (CI/CD)
+
+To enable automated deployment, configure the following secrets in your GitHub repository:
+
+**Required Secrets:**
+
+1. Go to your GitHub repository → Settings → Secrets and variables → Actions
+2. Add the following repository secrets:
+
+| Secret Name             | Description                                       | How to Get                                                    |
+| ----------------------- | ------------------------------------------------- | ------------------------------------------------------------- |
+| `CLOUDFLARE_API_TOKEN`  | Cloudflare API token with Workers:Edit permission | Cloudflare Dashboard → My Profile → API Tokens → Create Token |
+| `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare account ID                        | Cloudflare Dashboard → Right sidebar                          |
+| `NEXTAUTH_SECRET`       | NextAuth secret (32+ characters)                  | Generate: `openssl rand -base64 32`                           |
+| `NEXTAUTH_URL`          | Production URL                                    | Your deployed app URL (e.g., `https://your-app.pages.dev`)    |
+| `GOOGLE_CLIENT_ID`      | Google OAuth client ID (optional)                 | Google Cloud Console                                          |
+| `GOOGLE_CLIENT_SECRET`  | Google OAuth secret (optional)                    | Google Cloud Console                                          |
+
+**Generate Secrets:**
+
+```bash
+# Generate NEXTAUTH_SECRET
+openssl rand -base64 32
+
+# Generate JWT_SECRET (if needed)
+openssl rand -base64 32
+```
+
+**Cloudflare API Token Permissions:**
+
+When creating the API token, ensure it has:
+
+- Account → Workers Scripts → Edit
+- Account → Workers KV Storage → Edit (if using KV)
+- Account → D1 → Edit
+- Account → Workers R2 Storage → Edit (if using R2)
+
+**Deployment Workflow:**
+
+The GitHub Actions workflow automatically:
+
+1. Runs on push to `main` branch (after CI passes)
+2. Generates Drizzle client
+3. Generates OpenAPI documentation
+4. Applies database migrations to production D1
+5. Sets Cloudflare Worker secrets
+6. Builds and deploys to Cloudflare Workers
+
+**Manual Deployment:**
+
+You can also trigger deployment manually:
+
+1. Go to Actions tab in GitHub
+2. Select "Deploy to Cloudflare" workflow
+3. Click "Run workflow"
 
 ### Task Management
 
@@ -282,9 +412,18 @@ task-master set-status --id=1 --status=done
 - [Routing & State Management](./docs/ROUTING_AND_STATE_MANAGEMENT.md) - Frontend architecture and navigation
 - [Third-Party Integrations](./docs/THIRD_PARTY.md) - External dependencies, Cloudflare services, and integrations
 
-## 🤝 Contributing
+### References
 
-1. Follow the Task Master workflow for development
-2. Ensure all tests pass before submitting PR
-3. Update documentation as needed
-4. Follow the established code style and conventions
+1. [Task Master](https://github.com/eyaltoledano/claude-task-master) -- Task management tool for developers
+2. [Drizzle ORM](https://orm.drizzle.team) -- Database schema management
+3. [OpenNext.js](https://opennext.js.org) -- Next.js deployment on Cloudflare Workers
+4. [Cloudflare](https://developers.cloudflare.com/workers/framework-guides/web-apps/nextjs/) -- Cloudflare services
+5. [NextAuth.js](https://next-auth.js.org) -- Authentication for Next.js
+6. [TanStack Query](https://tanstack.com/query/v5) -- Data fetching and state management
+7. [Schadcn/UI](https://ui.shadcn.com) -- UI components
+
+### Discussion
+
+1. [swagger-ui-react - update old lifecycle methods #5729](https://github.com/swagger-api/swagger-ui/issues/5729) -- it is a bug in swagger-ui-react with lifecycle issue, and it is not fixed yet, so I tried migrate to [Next OpenAPI Gen](https://github.com/tazo90/next-openapi-gen) for generating OpenAPI documentation.
+
+2. [Why OpenNext?](https://www.reddit.com/r/nextjs/comments/1fs3ktk/why_opennext/) -- for most spesific discussion i can found in replit, compare with VM and Serverless environment.

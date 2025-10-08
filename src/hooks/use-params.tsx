@@ -8,7 +8,7 @@ interface URLParams {
   nav: string | null;
   q: string | null;
   tag: string | null;
-  slug: string | null;
+  id: string | null;
 }
 
 // Context 類型定義
@@ -34,7 +34,7 @@ export function URLParamsProvider({ children }: { children: React.ReactNode }) {
         nav: searchParams?.get("nav") || null,
         q: searchParams?.get("q") || null,
         tag: searchParams?.get("tag") || null,
-        slug: searchParams?.get("slug") || null,
+        id: searchParams?.get("id") || null,
       };
     } catch (error) {
       console.error("解析 URL 參數時出錯:", error);
@@ -42,7 +42,7 @@ export function URLParamsProvider({ children }: { children: React.ReactNode }) {
         nav: null,
         q: null,
         tag: null,
-        slug: null,
+        id: null,
       };
     }
   }, [searchParams]);
@@ -149,10 +149,10 @@ export function useTagFilter() {
   };
 }
 
-export function useNoteSlug() {
+export function useNoteId() {
   const { params, updateParam } = useURLParams();
   return {
-    slug: params.slug,
-    setSlug: (value: string | null) => updateParam("slug", value),
+    id: params.id,
+    setId: (value: string | null) => updateParam("id", value),
   };
 }
